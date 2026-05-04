@@ -57,6 +57,33 @@
   .bal-label{font-size:12px;color:#888;margin-bottom:2px}
   .bal-sub{font-size:13px;color:#888;margin-top:2px}
   .empty{text-align:center;padding:2.5rem 1rem;color:#aaa;font-size:13px}
+
+  /* ── Snapshots tab ── */
+  .snap-toolbar{display:flex;gap:8px;align-items:center;margin-bottom:1.25rem;flex-wrap:wrap}
+  .snap-toolbar select{width:auto;min-width:120px}
+  .snap-toolbar label{font-size:12px;color:#666}
+  .snap-section-title{font-size:13px;font-weight:500;color:#555;margin-bottom:.6rem;margin-top:1.25rem}
+  .snap-section-title:first-child{margin-top:0}
+  .snap-card-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin-bottom:1.5rem}
+  .snap-card{background:#fff;border:1px solid #e5e5e3;border-radius:10px;padding:.9rem 1.1rem}
+  .snap-card-label{font-size:11px;color:#888;margin-bottom:3px}
+  .snap-card-value{font-size:18px;font-weight:500}
+  .snap-card-sub{font-size:11px;color:#aaa;margin-top:2px}
+  .month-nav{display:flex;gap:6px;align-items:center}
+  .month-nav button{padding:5px 12px;font-size:12px}
+  .month-nav span{font-size:13px;font-weight:500;min-width:100px;text-align:center}
+  .snap-ticker-row{cursor:pointer}
+  .snap-ticker-row td:first-child{font-weight:500}
+  .snap-expand{background:#fafaf8;display:none}
+  .snap-expand.open{display:table-row}
+  .snap-expand td{padding:8px 14px 12px 28px;font-size:12px;color:#666;border-bottom:1px solid #f0f0ee}
+  .trend-bar-wrap{display:flex;align-items:flex-end;gap:3px;height:40px;margin-top:.5rem}
+  .trend-bar{width:28px;border-radius:3px 3px 0 0;min-height:3px;position:relative;cursor:pointer}
+  .trend-bar:hover::after{content:attr(data-tip);position:absolute;bottom:calc(100% + 4px);left:50%;transform:translateX(-50%);background:#333;color:#fff;font-size:11px;padding:3px 7px;border-radius:5px;white-space:nowrap;pointer-events:none;z-index:10}
+  .trend-label{display:flex;gap:3px;margin-top:2px}
+  .trend-label span{width:28px;font-size:9px;color:#aaa;text-align:center;overflow:hidden}
+  .snap-info{font-size:12px;color:#888;background:#fff;border:1px solid #e5e5e3;border-radius:8px;padding:.75rem 1rem;margin-top:1rem}
+  .snap-empty{text-align:center;padding:3rem 1rem;color:#aaa;font-size:13px}
 </style>
 </head>
 <body>
@@ -66,6 +93,7 @@
 
 <div class="tabs">
   <button class="tab active" onclick="switchTab('holdings')">Holdings</button>
+  <button class="tab" onclick="switchTab('snapshots')">Snapshots</button>
   <button class="tab" onclick="switchTab('account')">Account</button>
 </div>
 
@@ -95,6 +123,11 @@
     </table>
   </div>
   <div class="note">Holdings are derived from your buy/sell transactions in the Account tab. Prices from Finnhub.</div>
+</div>
+
+<!-- ══════════ SNAPSHOTS TAB ══════════ -->
+<div class="tab-panel" id="tab-snapshots">
+  <div id="snap-content"></div>
 </div>
 
 <!-- ══════════ ACCOUNT TAB ══════════ -->
@@ -188,33 +221,38 @@
 <script>
 const API_KEY = 'd7rrhh1r01qm28g7ebrgd7rrhh1r01qm28g7ebs0';
 
-// Single source of truth: the ledger
-// type: 'deposit' | 'withdrawal' | 'buy' | 'sell'
-//let ledger = [];
- let ledger = JSON.parse(localStorage.getItem('ledger') || '[]');
-let nextId = 1;
+let ledger = JSON.parse(localStorage.getItem('ledger') || '[]');
 
-// Live price cache: { TICKER: { price, chg } }
+// Load saved snapshots from localStorage
+let snapshots = JSON.parse(localStorage.getItem('snapshots') || '{}');
+// { "2025-03": { date, cash, costBasis, holdings: [{ticker,shares,avgCost,pricePerShare,mktValue,gain}], totalMktValue, totalGain } }
+
+let nextId = 1;
 let priceCache = {};
+
+// Snapshot tab state
+let snapViewMonth = null; // "YYYY-MM" currently displayed
 
 function today() { return new Date().toISOString().slice(0,10); }
 function fmt(n)  { return n.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}); }
 function fmtPct(n){ return (n>=0?'+':'')+n.toFixed(2)+'%'; }
 function fmtDate(d){ if(!d)return'—'; const[y,m,day]=d.split('-'); return`${day}/${m}/${y}`; }
+function monthLabel(ym){ const [y,m]=ym.split('-'); return new Date(y,m-1,1).toLocaleDateString('en-US',{month:'long',year:'numeric'}); }
 
-/* ─── Derive holdings from ledger ─── */
-function computeHoldings() {
-  const map = {}; // ticker -> { shares, totalCost, firstDate }
-  const sorted = [...ledger].sort((a,b)=>a.date.localeCompare(b.date)||a.id-b.id);
+/* ─── Derive holdings from ledger up to a given date ─── */
+function computeHoldingsAsOf(dateStr) {
+  const map = {};
+  const sorted = [...ledger]
+    .filter(e => e.date <= dateStr)
+    .sort((a,b)=>a.date.localeCompare(b.date)||a.id-b.id);
   sorted.forEach(e => {
     if(e.type==='buy') {
-      if(!map[e.ticker]) map[e.ticker] = {shares:0, totalCost:0, firstDate:e.date};
+      if(!map[e.ticker]) map[e.ticker] = {shares:0, totalCost:0};
       map[e.ticker].shares    += e.shares;
       map[e.ticker].totalCost += e.shares * e.pricePerShare;
     } else if(e.type==='sell') {
       if(map[e.ticker]) {
         map[e.ticker].shares -= e.shares;
-        // proportionally reduce cost basis
         const before = map[e.ticker].shares + e.shares;
         map[e.ticker].totalCost *= (map[e.ticker].shares / before);
         if(map[e.ticker].shares < 0.00001) delete map[e.ticker];
@@ -223,33 +261,34 @@ function computeHoldings() {
   });
   return Object.entries(map)
     .filter(([,v])=>v.shares>0.00001)
-    .map(([ticker,v])=>({
-      ticker,
-      shares: +v.shares.toFixed(6),
-      avgCost: v.totalCost / v.shares,
-      firstDate: v.firstDate,
-      price: priceCache[ticker]?.price ?? null,
-      chg:   priceCache[ticker]?.chg   ?? null,
-    }));
+    .map(([ticker,v])=>({ ticker, shares:+v.shares.toFixed(6), avgCost:v.totalCost/v.shares }));
 }
 
-/* ─── Cash balance from ledger ─── */
-function cashBalance() {
-  return ledger.reduce((acc,e) => {
-    if(e.type==='deposit'||e.type==='sell')    return acc + e.amount;
-    if(e.type==='withdrawal'||e.type==='buy')  return acc - e.amount;
-    return acc;
-  }, 0);
+function computeHoldings() { return computeHoldingsAsOf(today()); }
+
+function cashBalanceAsOf(dateStr) {
+  return ledger
+    .filter(e => e.date <= dateStr)
+    .reduce((acc,e) => {
+      if(e.type==='deposit'||e.type==='sell')    return acc + e.amount;
+      if(e.type==='withdrawal'||e.type==='buy')  return acc - e.amount;
+      return acc;
+    }, 0);
 }
+
+function cashBalance() { return cashBalanceAsOf(today()); }
 
 /* ─── Tabs ─── */
 function switchTab(name) {
   document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
   document.getElementById('tab-'+name).classList.add('active');
-  document.querySelectorAll('.tab')[name==='holdings'?0:1].classList.add('active');
+  const tabNames=['holdings','snapshots','account'];
+  const idx=tabNames.indexOf(name);
+  document.querySelectorAll('.tab')[idx].classList.add('active');
   if(name==='account') { populateSellTicker(); renderLedger(); }
   if(name==='holdings') renderHoldings();
+  if(name==='snapshots') renderSnapshots();
 }
 
 /* ─── Forms ─── */
@@ -319,12 +358,10 @@ function doBuy() {
   const bal=cashBalance();
   if(cost>bal+0.001){err.textContent=`Insufficient cash. Balance: $${fmt(bal)}, needed: $${fmt(cost)}`;return;}
   ledger.push({id:nextId++,date:d,type:'buy',ticker:t,shares:+s,pricePerShare:+p.toFixed(4),amount:cost,note:''});
-  // seed price cache so holdings tab shows something immediately
   if(!priceCache[t]) priceCache[t]={price:p,chg:null};
   ['b-ticker','b-shares','b-price','b-date'].forEach(id=>document.getElementById(id).value='');
   closeForm('buy-form');
   renderAll();
-  // fetch live price in background
   fetchPrice(t).then(r=>{ priceCache[t]=r; renderAll(); }).catch(()=>{});
 }
 
@@ -383,13 +420,11 @@ async function refreshAll() {
 }
 
 /* ─── Render all ─── */
-//function renderAll() { renderHoldings(); renderLedger(); }
-  function renderAll() {
+function renderAll() {
   localStorage.setItem('ledger', JSON.stringify(ledger));
   renderHoldings();
   renderLedger();
 }
-
 
 /* ─── Render Holdings ─── */
 function renderHoldings() {
@@ -480,6 +515,247 @@ function renderLedger() {
   document.getElementById('bal-sub').textContent=deps>0
     ?`$${fmt(deps)} deposited · $${fmt(wits)} withdrawn`
     :'No transactions yet';
+}
+
+/* ══════════════════════════════════════
+   SNAPSHOT LOGIC
+══════════════════════════════════════ */
+
+function currentYM() {
+  const d=new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+}
+
+/* Last day of a given YYYY-MM */
+function lastDayOfMonth(ym) {
+  const [y,m]=ym.split('-').map(Number);
+  return new Date(y,m,0).toISOString().slice(0,10);
+}
+
+/* All months from first ledger entry to current */
+function allMonths() {
+  if(!ledger.length) return [];
+  const dates=ledger.map(e=>e.date).sort();
+  const start=dates[0].slice(0,7);
+  const end=currentYM();
+  const months=[];
+  let [y,m]=[parseInt(start.slice(0,4)),parseInt(start.slice(5,7))];
+  const [ey,em]=[parseInt(end.slice(0,4)),parseInt(end.slice(5,7))];
+  while(y<ey||(y===ey&&m<=em)){
+    months.push(`${y}-${String(m).padStart(2,'0')}`);
+    m++; if(m>12){m=1;y++;}
+  }
+  return months;
+}
+
+/* Take (or retake) a snapshot for a given YYYY-MM */
+async function takeSnapshot(ym, silent=false) {
+  const endDate=lastDayOfMonth(ym);
+  const holdingsAsOf=computeHoldingsAsOf(endDate);
+  const cash=cashBalanceAsOf(endDate);
+
+  // fetch prices for each holding
+  const priceResults=await Promise.allSettled(
+    holdingsAsOf.map(h=>fetchPrice(h.ticker).then(r=>({ticker:h.ticker,...r})))
+  );
+
+  const holdingData=holdingsAsOf.map(h=>{
+    const priceRes=priceResults.find(r=>r.status==='fulfilled'&&r.value.ticker===h.ticker);
+    const price=priceRes?priceRes.value.price:null;
+    const mktValue=price!==null?h.shares*price:null;
+    const cost=h.shares*h.avgCost;
+    const gain=mktValue!==null?mktValue-cost:null;
+    return {ticker:h.ticker,shares:h.shares,avgCost:h.avgCost,pricePerShare:price,mktValue,cost,gain};
+  });
+
+  const totalMktValue=holdingData.reduce((s,h)=>s+(h.mktValue||0),0);
+  const totalCost=holdingData.reduce((s,h)=>s+h.cost,0);
+  const totalGain=holdingData.reduce((s,h)=>s+(h.gain||0),0);
+
+  snapshots[ym]={
+    ym,
+    takenAt: new Date().toISOString(),
+    cash,
+    holdings: holdingData,
+    totalMktValue,
+    totalCost,
+    totalGain,
+    totalWithCash: totalMktValue+cash,
+  };
+  localStorage.setItem('snapshots', JSON.stringify(snapshots));
+  if(!silent) renderSnapshots();
+}
+
+/* Delete a snapshot */
+function deleteSnapshot(ym) {
+  delete snapshots[ym];
+  localStorage.setItem('snapshots', JSON.stringify(snapshots));
+  renderSnapshots();
+}
+
+/* Render the snapshots tab */
+function renderSnapshots() {
+  const months=allMonths();
+  const container=document.getElementById('snap-content');
+
+  if(!months.length) {
+    container.innerHTML=`<div class="snap-empty">No transactions yet. Add some activity in the Account tab first.</div>`;
+    return;
+  }
+
+  // Default to most recent month
+  if(!snapViewMonth || !months.includes(snapViewMonth)) {
+    snapViewMonth=months[months.length-1];
+  }
+
+  const idx=months.indexOf(snapViewMonth);
+  const snap=snapshots[snapViewMonth]||null;
+  const sortedSnaps=months.filter(m=>snapshots[m]).map(m=>snapshots[m]);
+
+  // --- Trend chart data (last 12 months with snapshots) ---
+  const trendMonths=sortedSnaps.slice(-12);
+
+  // --- Build HTML ---
+  let html='';
+
+  // Month navigator + capture button
+  html+=`<div class="snap-toolbar">
+    <div class="month-nav">
+      <button onclick="snapNav(-1)" ${idx===0?'disabled':''}>‹</button>
+      <span>${monthLabel(snapViewMonth)}</span>
+      <button onclick="snapNav(1)" ${idx===months.length-1?'disabled':''}>›</button>
+    </div>
+    <select onchange="snapViewMonth=this.value;renderSnapshots()" style="min-width:160px">
+      ${[...months].reverse().map(m=>`<option value="${m}" ${m===snapViewMonth?'selected':''}>${monthLabel(m)}</option>`).join('')}
+    </select>
+    <button onclick="doTakeSnapshot('${snapViewMonth}')" id="snap-btn-${snapViewMonth}">
+      ${snap ? '↻ Retake snapshot' : '+ Take snapshot'}
+    </button>
+    ${snap?`<button onclick="deleteSnapshot('${snapViewMonth}')" style="color:#E24B4A;border-color:#f5c0c0">Delete</button>`:''}
+  </div>`;
+
+  if(!snap) {
+    html+=`<div class="snap-empty" style="padding:2rem">
+      No snapshot for ${monthLabel(snapViewMonth)} yet.<br>
+      <span style="font-size:12px;color:#bbb">Click "Take snapshot" to capture holdings and prices at end of month.</span>
+    </div>`;
+  } else {
+    const takenAt=new Date(snap.takenAt).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'});
+    const totalRet=snap.totalCost?(snap.totalGain/snap.totalCost*100):0;
+
+    // Summary cards
+    html+=`<div class="snap-section-title">Portfolio summary · captured ${takenAt}</div>
+    <div class="snap-card-grid">
+      <div class="snap-card">
+        <div class="snap-card-label">Total value (incl. cash)</div>
+        <div class="snap-card-value">$${fmt(snap.totalWithCash)}</div>
+      </div>
+      <div class="snap-card">
+        <div class="snap-card-label">Equity value</div>
+        <div class="snap-card-value">$${fmt(snap.totalMktValue)}</div>
+      </div>
+      <div class="snap-card">
+        <div class="snap-card-label">Cash</div>
+        <div class="snap-card-value">$${fmt(snap.cash)}</div>
+      </div>
+      <div class="snap-card">
+        <div class="snap-card-label">Cost basis</div>
+        <div class="snap-card-value">$${fmt(snap.totalCost)}</div>
+      </div>
+      <div class="snap-card">
+        <div class="snap-card-label">Unrealised gain/loss</div>
+        <div class="snap-card-value ${snap.totalGain>=0?'pos':'neg'}">${snap.totalGain>=0?'+':'-'}$${fmt(Math.abs(snap.totalGain))}</div>
+      </div>
+      <div class="snap-card">
+        <div class="snap-card-label">Overall return</div>
+        <div class="snap-card-value ${totalRet>=0?'pos':'neg'}">${fmtPct(totalRet)}</div>
+      </div>
+    </div>`;
+
+    // Holdings table
+    html+=`<div class="snap-section-title">Holdings</div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr>
+          <th>Ticker</th>
+          <th class="r">Shares</th>
+          <th class="r">Avg cost</th>
+          <th class="r">Price at snapshot</th>
+          <th class="r">Mkt value</th>
+          <th class="r">Gain/loss</th>
+          <th class="r">Return</th>
+        </tr></thead>
+        <tbody>`;
+
+    if(!snap.holdings.length) {
+      html+=`<tr><td colspan="7" class="empty">No holdings at end of ${monthLabel(snapViewMonth)}.</td></tr>`;
+    } else {
+      snap.holdings.forEach((h,i)=>{
+        const ret=h.cost?(h.gain/h.cost*100):0;
+        html+=`<tr class="snap-ticker-row" onclick="toggleSnapExpand(${i})">
+          <td>${h.ticker}</td>
+          <td class="r">${h.shares%1===0?h.shares:h.shares.toFixed(4)}</td>
+          <td class="r">$${fmt(h.avgCost)}</td>
+          <td class="r">${h.pricePerShare!==null?'$'+fmt(h.pricePerShare):'—'}</td>
+          <td class="r">${h.mktValue!==null?'$'+fmt(h.mktValue):'—'}</td>
+          <td class="r">${h.gain!==null?`<span class="${h.gain>=0?'pos':'neg'}">${h.gain>=0?'+':'-'}$${fmt(Math.abs(h.gain))}</span>`:'—'}</td>
+          <td class="r">${h.mktValue!==null?`<span class="badge ${ret>=0?'pos':'neg'}">${fmtPct(ret)}</span>`:'—'}</td>
+        </tr>
+        <tr class="snap-expand" id="snap-expand-${i}">
+          <td colspan="7">
+            Cost basis: $${fmt(h.cost)} · 
+            Weight: ${snap.totalMktValue?((h.mktValue||0)/snap.totalMktValue*100).toFixed(1):'—'}% of equity · 
+            ${h.pricePerShare!==null?`Captured price: $${fmt(h.pricePerShare)}`:'Price unavailable at capture'}
+          </td>
+        </tr>`;
+      });
+    }
+    html+=`</tbody></table></div>`;
+  }
+
+  // Portfolio value trend (all months with snapshots)
+  if(trendMonths.length > 1) {
+    const maxVal=Math.max(...trendMonths.map(s=>s.totalWithCash),1);
+    const bars=trendMonths.map(s=>{
+      const h=Math.max(4,Math.round((s.totalWithCash/maxVal)*40));
+      const col=s.totalGain>=0?'#1D9E75':'#E24B4A';
+      const tip=`${monthLabel(s.ym)}: $${fmt(s.totalWithCash)}`;
+      const lbl=s.ym.slice(5); // "MM"
+      return {h,col,tip,lbl};
+    });
+
+    html+=`<div class="snap-section-title">Portfolio value trend</div>
+    <div style="background:#fff;border:1px solid #e5e5e3;border-radius:12px;padding:1rem 1.2rem;margin-bottom:1.5rem;display:inline-block;min-width:220px">
+      <div class="trend-bar-wrap">
+        ${bars.map(b=>`<div class="trend-bar" style="height:${b.h}px;background:${b.col}" data-tip="${b.tip}"></div>`).join('')}
+      </div>
+      <div class="trend-label">
+        ${bars.map(b=>`<span>${b.lbl}</span>`).join('')}
+      </div>
+    </div>`;
+  }
+
+  html+=`<div class="snap-info">Snapshots capture holdings and live prices at the time of capture, not necessarily end-of-month closing prices. Retake any month to refresh.</div>`;
+
+  container.innerHTML=html;
+}
+
+function snapNav(dir) {
+  const months=allMonths();
+  const idx=months.indexOf(snapViewMonth);
+  const next=idx+dir;
+  if(next>=0&&next<months.length){snapViewMonth=months[next];renderSnapshots();}
+}
+
+function toggleSnapExpand(i) {
+  const el=document.getElementById('snap-expand-'+i);
+  if(el) el.classList.toggle('open');
+}
+
+async function doTakeSnapshot(ym) {
+  const btn=document.getElementById('snap-btn-'+ym);
+  if(btn){btn.textContent='Fetching…';btn.disabled=true;}
+  await takeSnapshot(ym);
 }
 
 /* init */
