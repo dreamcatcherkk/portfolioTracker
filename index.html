@@ -218,6 +218,32 @@ function login() {
   auth.signInWithEmailAndPassword(email, password)
     .catch(err => alert(err.message));
 }
+
+ auth.onAuthStateChanged(user => {
+  if (user) {
+    document.getElementById('auth').style.display = 'none';
+    loadData(user.uid);
+  } else {
+    document.getElementById('auth').style.display = 'block';
+  }
+});
+
+ async function saveData(uid) {
+  await db.collection('users').doc(uid).set({
+    ledger: ledger
+  });
+}
+
+ async function loadData(uid) {
+  const doc = await db.collection('users').doc(uid).get();
+  if (doc.exists) {
+    ledger = doc.data().ledger || [];
+  } else {
+    ledger = [];
+  }
+  renderAll();
+}
+ 
 const API_KEY = 'd7rrhh1r01qm28g7ebrgd7rrhh1r01qm28g7ebs0';
 
 // Single source of truth: the ledger
@@ -416,12 +442,19 @@ async function refreshAll() {
 
 /* ─── Render all ─── */
 //function renderAll() { renderHoldings(); renderLedger(); }
-  function renderAll() {
-  localStorage.setItem('ledger', JSON.stringify(ledger));
+//  function renderAll() {
+//  localStorage.setItem('ledger', JSON.stringify(ledger));
+//  renderHoldings();
+//  renderLedger();
+//}
+
+ function renderAll() {
   renderHoldings();
   renderLedger();
-}
 
+  const user = auth.currentUser;
+  if (user) saveData(user.uid);
+}
 
 /* ─── Render Holdings ─── */
 function renderHoldings() {
