@@ -383,7 +383,13 @@ async function refreshAll() {
 }
 
 /* ─── Render all ─── */
-function renderAll() { renderHoldings(); renderLedger(); }
+//function renderAll() { renderHoldings(); renderLedger(); }
+  function renderAll() {
+  localStorage.setItem('ledger', JSON.stringify(ledger));
+  renderHoldings();
+  renderLedger();
+}
+
 
 /* ─── Render Holdings ─── */
 function renderHoldings() {
