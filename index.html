@@ -190,7 +190,8 @@ const API_KEY = 'd7rrhh1r01qm28g7ebrgd7rrhh1r01qm28g7ebs0';
 
 // Single source of truth: the ledger
 // type: 'deposit' | 'withdrawal' | 'buy' | 'sell'
-let ledger = [];
+//let ledger = [];
+ let ledger = JSON.parse(localStorage.getItem('ledger') || '[]');
 let nextId = 1;
 
 // Live price cache: { TICKER: { price, chg } }
