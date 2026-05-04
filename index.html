@@ -61,14 +61,6 @@
 </head>
 <body>
 
- <div id="auth">
-  <h2>Login</h2>
-  <input id="email" placeholder="Email"><br><br>
-  <input id="password" type="password" placeholder="Password"><br><br>
-  <button onclick="signup()">Sign up</button>
-  <button onclick="login()">Login</button>
-</div>
- 
 <h1>My portfolio</h1>
 <div class="ts" id="ts"></div>
 
@@ -193,7 +185,6 @@
   </div>
 </div>
 
- 
 <script>
 const API_KEY = 'd7rrhh1r01qm28g7ebrgd7rrhh1r01qm28g7ebs0';
 
@@ -392,7 +383,7 @@ async function refreshAll() {
 }
 
 /* ─── Render all ─── */
-function renderAll() { renderHoldings(); renderLedger(); }
+//function renderAll() { renderHoldings(); renderLedger(); }
   function renderAll() {
   localStorage.setItem('ledger', JSON.stringify(ledger));
   renderHoldings();
