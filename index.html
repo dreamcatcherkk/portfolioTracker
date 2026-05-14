@@ -251,7 +251,7 @@
 
     <!-- Ledger table -->
     <div class="table-wrap">
-      <table style="min-width:780px">
+      <table style="min-width:580px">
         <thead>
           <tr>
             <th style="width:90px">Date</th>
@@ -259,9 +259,8 @@
             <th style="width:70px">Ticker</th>
             <th class="r" style="width:70px">Shares</th>
             <th class="r" style="width:100px">Price/share</th>
-            <th class="r" style="width:110px">Amount (USD)</th>
-            <th class="r" style="width:110px">Amount (SGD)</th>
-            <th style="width:130px">Note</th>
+            <th class="r" style="width:110px">Amount</th>
+            <th style="width:160px">Note</th>
             <th class="r" style="width:120px">Balance after</th>
             <th style="width:36px"></th>
           </tr>
@@ -840,7 +839,7 @@ function renderLedger() {
   tbody.innerHTML='';
 
   if(sorted.length===0) {
-    tbody.innerHTML=`<tr><td colspan="10" class="empty">No transactions yet — start by making a deposit.</td></tr>`;
+    tbody.innerHTML=`<tr><td colspan="9" class="empty">No transactions yet — start by making a deposit.</td></tr>`;
   } else {
     let running=0;
     sorted.forEach(e=>{
@@ -848,17 +847,13 @@ function renderLedger() {
       running+=isCredit?e.amount:-e.amount;
       const labels={deposit:'Deposit',withdrawal:'Withdraw',buy:'Buy',sell:'Sell'};
       const cls={deposit:'dep',withdrawal:'wit',buy:'buy',sell:'sell'};
+      const sgdBadge=(e.amountSGD && (e.type==='deposit'||e.type==='withdrawal'))
+        ? `<span style="font-size:11px;color:#aaa;white-space:nowrap">S$${e.amountSGD.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})}</span>`
+        : '';
       const amtHtml=isCredit
-        ?`<span class="pos">+US$${fmt(e.amount)}</span>`
-        :`<span class="neg">-US$${fmt(e.amount)}</span>`;
-      const sgdHtml=(e.amountSGD && (e.type==='deposit'||e.type==='withdrawal'))
-        ? (isCredit
-            ? `<span class="pos">+S$${fmt(e.amountSGD)}</span><br><span style="font-size:11px;color:#aaa">@ ${e.sgdRate ? e.sgdRate.toFixed(4) : '—'}</span>`
-            : `<span class="neg">-S$${fmt(e.amountSGD)}</span><br><span style="font-size:11px;color:#aaa">@ ${e.sgdRate ? e.sgdRate.toFixed(4) : '—'}</span>`)
-        : '<span style="color:#ddd">—</span>';
+        ?`<span class="pos">+US$${fmt(e.amount)}</span>${sgdBadge?'<br>'+sgdBadge:''}`
+        :`<span class="neg">-US$${fmt(e.amount)}</span>${sgdBadge?'<br>'+sgdBadge:''}`;
       const note=e.note||(e.ticker?`${labels[e.type]} ${e.ticker}`:labels[e.type]);
-      // Strip the "(S$... @ ...)" part from note since it's now in its own column
-      const cleanNote=note.replace(/\s*\(S\$[\d.,]+\s*@\s*[\d.]+\)/,'');
       const tr=document.createElement('tr');
       tr.innerHTML=`
         <td style="color:#888">${fmtDate(e.date)}</td>
@@ -867,13 +862,11 @@ function renderLedger() {
         <td class="r">${e.shares!=null?(e.shares%1===0?e.shares:e.shares.toFixed(4)):'—'}</td>
         <td class="r">${e.pricePerShare!=null?'$'+fmt(e.pricePerShare):'—'}</td>
         <td class="r">${amtHtml}</td>
-        <td class="r">${sgdHtml}</td>
-        <td style="color:#888;font-size:12px;max-width:130px;overflow:hidden;text-overflow:ellipsis">${cleanNote}</td>
+        <td style="color:#888;font-size:12px;max-width:160px;overflow:hidden;text-overflow:ellipsis">${note}</td>
         <td class="r" style="font-weight:500">US$${fmt(running)}</td>
         <td><button class="del-btn" onclick="deleteLedgerEntry('${e.firestoreId}', ${e.id})" title="Delete">×</button></td>
       `;
       tbody.appendChild(tr);
-    });
     });
   }
 
