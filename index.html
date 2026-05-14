@@ -195,7 +195,7 @@
           <label>SGD → USD rate</label>
           <input id="dep-rate" type="number" placeholder="0.7400" min="0.0001" step="any" oninput="updateDepPreview()">
         </div>
-        <div><label>Date</label><input id="dep-date" type="date"></div>
+        <div><label>Date</label><input id="dep-date" type="date" onchange="onDepDateChange()"></div>
         <div><label>Note (optional)</label><input id="dep-note" type="text" placeholder="Initial deposit"></div>
       </div>
       <div id="dep-preview" style="font-size:12px;color:#555;margin-bottom:8px;min-height:18px"></div>
@@ -215,7 +215,7 @@
           <label>SGD → USD rate</label>
           <input id="wit-rate" type="number" placeholder="0.7400" min="0.0001" step="any" oninput="updateWitPreview()">
         </div>
-        <div><label>Date</label><input id="wit-date" type="date"></div>
+        <div><label>Date</label><input id="wit-date" type="date" onchange="onWitDateChange()"></div>
         <div><label>Note (optional)</label><input id="wit-note" type="text" placeholder="Withdrawal"></div>
       </div>
       <div id="wit-preview" style="font-size:12px;color:#555;margin-bottom:8px;min-height:18px"></div>
@@ -505,55 +505,110 @@ function toggleForm(id) {
 function openForm(id) {
   document.getElementById(id).classList.add('open');
   if(id==='sell-form') populateSellTicker();
-  if(id==='deposit-form' || id==='withdraw-form') fetchAndPrefillSGDRate(id);
+  if(id==='deposit-form') {
+    const dateEl = document.getElementById('dep-date');
+    if(!dateEl.value) dateEl.value = today();
+    fetchAndPrefillSGDRate('deposit-form', dateEl.value);
+  }
+  if(id==='withdraw-form') {
+    const dateEl = document.getElementById('wit-date');
+    if(!dateEl.value) dateEl.value = today();
+    fetchAndPrefillSGDRate('withdraw-form', dateEl.value);
+  }
   const first = document.getElementById(id).querySelector('input,select');
   if(first) first.focus();
 }
 
 /* ─── SGD/USD rate helpers ─── */
-let _cachedSGDRate = null;
-let _cachedSGDRateTs = 0;
+const _sgdRateCache = {}; // keyed by 'YYYY-MM-DD' or 'live'
 
-async function fetchAndPrefillSGDRate(formId) {
-  const rateInputId = formId === 'deposit-form' ? 'dep-rate' : 'wit-rate';
-  const rateEl = document.getElementById(rateInputId);
+/**
+ * Fetch SGD→USD rate for a given date string ('YYYY-MM-DD').
+ * Uses Finnhub forex/candle for historical dates, forex/rates for today.
+ * Returns the rate as a number, or null on failure.
+ */
+async function fetchSGDRateForDate(dateStr) {
+  const cacheKey = dateStr || 'live';
+  if (_sgdRateCache[cacheKey]) return _sgdRateCache[cacheKey];
 
-  // Use cache if < 5 minutes old
-  if (_cachedSGDRate && Date.now() - _cachedSGDRateTs < 300000) {
-    rateEl.value = _cachedSGDRate;
-    if(formId==='deposit-form') updateDepPreview();
-    else updateWitPreview();
-    return;
-  }
+  const isToday = !dateStr || dateStr === today();
 
-  rateEl.placeholder = 'Fetching…';
   try {
-    const res = await fetch(`https://finnhub.io/api/v1/forex/rates?base=USD&token=${API_KEY}`);
-    const data = await res.json();
-    // data.quote.SGD is USD→SGD, we need SGD→USD
-    const usdPerSgd = data.quote && data.quote.SGD ? +(1 / data.quote.SGD).toFixed(6) : null;
-    if (usdPerSgd) {
-      _cachedSGDRate = usdPerSgd;
-      _cachedSGDRateTs = Date.now();
-      rateEl.value = usdPerSgd;
-      rateEl.placeholder = '0.7400';
+    if (isToday) {
+      // Live rate
+      const res = await fetch(`https://finnhub.io/api/v1/forex/rates?base=USD&token=${API_KEY}`);
+      const data = await res.json();
+      const usdPerSgd = data.quote && data.quote.SGD ? +(1 / data.quote.SGD).toFixed(6) : null;
+      if (usdPerSgd) _sgdRateCache[cacheKey] = usdPerSgd;
+      return usdPerSgd;
     } else {
-      rateEl.placeholder = '0.7400';
+      // Historical candle: request a 1-day window around the target date
+      // Finnhub forex candle: symbol=OANDA:SGD_USD, resolution=D
+      const d = new Date(dateStr + 'T12:00:00Z');
+      const from = Math.floor(d.getTime() / 1000) - 86400; // day before
+      const to   = Math.floor(d.getTime() / 1000) + 86400; // day after
+      const url = `https://finnhub.io/api/v1/forex/candle?symbol=OANDA:SGD_USD&resolution=D&from=${from}&to=${to}&token=${API_KEY}`;
+      const res = await fetch(url);
+      const data = await res.json();
+      // data.c = array of closing prices (SGD/USD directly)
+      if (data.s === 'ok' && data.c && data.c.length) {
+        // Pick the candle closest to our target date using timestamps
+        let best = null, bestDiff = Infinity;
+        const target = d.getTime() / 1000;
+        data.t.forEach((ts, i) => {
+          const diff = Math.abs(ts - target);
+          if (diff < bestDiff) { bestDiff = diff; best = data.c[i]; }
+        });
+        const rate = best ? +best.toFixed(6) : null;
+        if (rate) _sgdRateCache[cacheKey] = rate;
+        return rate;
+      }
+      return null;
     }
   } catch(e) {
-    rateEl.placeholder = '0.7400';
+    return null;
   }
-  if(formId==='deposit-form') updateDepPreview();
-  else updateWitPreview();
+}
+
+async function fetchAndPrefillSGDRate(formId, dateStr) {
+  const rateInputId = formId === 'deposit-form' ? 'dep-rate' : 'wit-rate';
+  const previewFn   = formId === 'deposit-form' ? updateDepPreview : updateWitPreview;
+  const rateEl = document.getElementById(rateInputId);
+
+  rateEl.value = '';
+  rateEl.placeholder = 'Fetching…';
+  previewFn();
+
+  const rate = await fetchSGDRateForDate(dateStr || today());
+
+  if (rate) {
+    rateEl.value = rate;
+    rateEl.placeholder = '0.7400';
+  } else {
+    rateEl.placeholder = 'Enter manually';
+  }
+  previewFn();
+}
+
+function onDepDateChange() {
+  const dateVal = document.getElementById('dep-date').value;
+  fetchAndPrefillSGDRate('deposit-form', dateVal);
+}
+
+function onWitDateChange() {
+  const dateVal = document.getElementById('wit-date').value;
+  fetchAndPrefillSGDRate('withdraw-form', dateVal);
 }
 
 function updateDepPreview() {
   const sgd = parseFloat(document.getElementById('dep-amount').value);
   const rate = parseFloat(document.getElementById('dep-rate').value);
+  const dateVal = document.getElementById('dep-date').value;
   const el = document.getElementById('dep-preview');
   if(!isNaN(sgd) && sgd > 0 && !isNaN(rate) && rate > 0) {
     const usd = sgd * rate;
-    el.innerHTML = `S$${sgd.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})} × ${rate.toFixed(4)} = <strong>US$${fmt(usd)}</strong> will be added to your balance`;
+    const dateNote = dateVal && dateVal !== today() ? ` · rate for ${fmtDate(dateVal)}` : ' · live rate';
+    el.innerHTML = `S$${sgd.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})} × ${rate.toFixed(4)} = <strong>US$${fmt(usd)}</strong> will be added to your balance<span style="color:#aaa">${dateNote}</span>`;
   } else {
     el.textContent = '';
   }
@@ -562,10 +617,12 @@ function updateDepPreview() {
 function updateWitPreview() {
   const sgd = parseFloat(document.getElementById('wit-amount').value);
   const rate = parseFloat(document.getElementById('wit-rate').value);
+  const dateVal = document.getElementById('wit-date').value;
   const el = document.getElementById('wit-preview');
   if(!isNaN(sgd) && sgd > 0 && !isNaN(rate) && rate > 0) {
     const usd = sgd * rate;
-    el.innerHTML = `S$${sgd.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})} × ${rate.toFixed(4)} = <strong>US$${fmt(usd)}</strong> will be deducted from your balance`;
+    const dateNote = dateVal && dateVal !== today() ? ` · rate for ${fmtDate(dateVal)}` : ' · live rate';
+    el.innerHTML = `S$${sgd.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})} × ${rate.toFixed(4)} = <strong>US$${fmt(usd)}</strong> will be deducted from your balance<span style="color:#aaa">${dateNote}</span>`;
   } else {
     el.textContent = '';
   }
