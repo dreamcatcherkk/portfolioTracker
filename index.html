@@ -187,10 +187,18 @@
     <div class="add-form" id="deposit-form">
       <div style="font-size:12px;font-weight:500;color:#555;margin-bottom:8px">Deposit cash</div>
       <div class="form-row">
-        <div><label>Amount ($)</label><input id="dep-amount" type="number" placeholder="10000.00" min="0.01" step="any"></div>
+        <div>
+          <label>Amount (S$)</label>
+          <input id="dep-amount" type="number" placeholder="13500.00" min="0.01" step="any" oninput="updateDepPreview()">
+        </div>
+        <div>
+          <label>SGD → USD rate</label>
+          <input id="dep-rate" type="number" placeholder="0.7400" min="0.0001" step="any" oninput="updateDepPreview()">
+        </div>
         <div><label>Date</label><input id="dep-date" type="date"></div>
         <div><label>Note (optional)</label><input id="dep-note" type="text" placeholder="Initial deposit"></div>
       </div>
+      <div id="dep-preview" style="font-size:12px;color:#555;margin-bottom:8px;min-height:18px"></div>
       <div style="display:flex;gap:8px"><button onclick="addDeposit()">Add deposit</button><button onclick="closeForm('deposit-form')">Cancel</button></div>
       <div id="dep-err" class="err"></div>
     </div>
@@ -199,10 +207,18 @@
     <div class="add-form" id="withdraw-form">
       <div style="font-size:12px;font-weight:500;color:#555;margin-bottom:8px">Withdraw cash</div>
       <div class="form-row">
-        <div><label>Amount ($)</label><input id="wit-amount" type="number" placeholder="1000.00" min="0.01" step="any"></div>
+        <div>
+          <label>Amount (S$)</label>
+          <input id="wit-amount" type="number" placeholder="1350.00" min="0.01" step="any" oninput="updateWitPreview()">
+        </div>
+        <div>
+          <label>SGD → USD rate</label>
+          <input id="wit-rate" type="number" placeholder="0.7400" min="0.0001" step="any" oninput="updateWitPreview()">
+        </div>
         <div><label>Date</label><input id="wit-date" type="date"></div>
         <div><label>Note (optional)</label><input id="wit-note" type="text" placeholder="Withdrawal"></div>
       </div>
+      <div id="wit-preview" style="font-size:12px;color:#555;margin-bottom:8px;min-height:18px"></div>
       <div style="display:flex;gap:8px"><button onclick="addWithdrawal()">Add withdrawal</button><button onclick="closeForm('withdraw-form')">Cancel</button></div>
       <div id="wit-err" class="err"></div>
     </div>
@@ -489,8 +505,70 @@ function toggleForm(id) {
 function openForm(id) {
   document.getElementById(id).classList.add('open');
   if(id==='sell-form') populateSellTicker();
+  if(id==='deposit-form' || id==='withdraw-form') fetchAndPrefillSGDRate(id);
   const first = document.getElementById(id).querySelector('input,select');
   if(first) first.focus();
+}
+
+/* ─── SGD/USD rate helpers ─── */
+let _cachedSGDRate = null;
+let _cachedSGDRateTs = 0;
+
+async function fetchAndPrefillSGDRate(formId) {
+  const rateInputId = formId === 'deposit-form' ? 'dep-rate' : 'wit-rate';
+  const rateEl = document.getElementById(rateInputId);
+
+  // Use cache if < 5 minutes old
+  if (_cachedSGDRate && Date.now() - _cachedSGDRateTs < 300000) {
+    rateEl.value = _cachedSGDRate;
+    if(formId==='deposit-form') updateDepPreview();
+    else updateWitPreview();
+    return;
+  }
+
+  rateEl.placeholder = 'Fetching…';
+  try {
+    const res = await fetch(`https://finnhub.io/api/v1/forex/rates?base=USD&token=${API_KEY}`);
+    const data = await res.json();
+    // data.quote.SGD is USD→SGD, we need SGD→USD
+    const usdPerSgd = data.quote && data.quote.SGD ? +(1 / data.quote.SGD).toFixed(6) : null;
+    if (usdPerSgd) {
+      _cachedSGDRate = usdPerSgd;
+      _cachedSGDRateTs = Date.now();
+      rateEl.value = usdPerSgd;
+      rateEl.placeholder = '0.7400';
+    } else {
+      rateEl.placeholder = '0.7400';
+    }
+  } catch(e) {
+    rateEl.placeholder = '0.7400';
+  }
+  if(formId==='deposit-form') updateDepPreview();
+  else updateWitPreview();
+}
+
+function updateDepPreview() {
+  const sgd = parseFloat(document.getElementById('dep-amount').value);
+  const rate = parseFloat(document.getElementById('dep-rate').value);
+  const el = document.getElementById('dep-preview');
+  if(!isNaN(sgd) && sgd > 0 && !isNaN(rate) && rate > 0) {
+    const usd = sgd * rate;
+    el.innerHTML = `S$${sgd.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})} × ${rate.toFixed(4)} = <strong>US$${fmt(usd)}</strong> will be added to your balance`;
+  } else {
+    el.textContent = '';
+  }
+}
+
+function updateWitPreview() {
+  const sgd = parseFloat(document.getElementById('wit-amount').value);
+  const rate = parseFloat(document.getElementById('wit-rate').value);
+  const el = document.getElementById('wit-preview');
+  if(!isNaN(sgd) && sgd > 0 && !isNaN(rate) && rate > 0) {
+    const usd = sgd * rate;
+    el.innerHTML = `S$${sgd.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})} × ${rate.toFixed(4)} = <strong>US$${fmt(usd)}</strong> will be deducted from your balance`;
+  } else {
+    el.textContent = '';
+  }
 }
 function closeForm(id) { document.getElementById(id).classList.remove('open'); }
 function closeAllForms() { document.querySelectorAll('.add-form').forEach(f=>f.classList.remove('open')); }
@@ -507,34 +585,48 @@ function populateSellTicker() {
 
 /* ─── Deposit ─── */
 async function addDeposit() {
-  const a=parseFloat(document.getElementById('dep-amount').value);
+  const sgd=parseFloat(document.getElementById('dep-amount').value);
+  const rate=parseFloat(document.getElementById('dep-rate').value);
   const d=document.getElementById('dep-date').value||today();
   const n=document.getElementById('dep-note').value.trim()||'Deposit';
   const err=document.getElementById('dep-err');
-  if(isNaN(a)||a<=0){err.textContent='Enter a valid amount.';return;}
-  const entry={id:nextId++,date:d,type:'deposit',ticker:null,shares:null,pricePerShare:null,amount:+a.toFixed(2),note:n};
+  err.textContent='';
+  if(isNaN(sgd)||sgd<=0){err.textContent='Enter a valid SGD amount.';return;}
+  if(isNaN(rate)||rate<=0){err.textContent='Enter the SGD → USD exchange rate.';return;}
+  const usd=+(sgd*rate).toFixed(2);
+  const entry={id:nextId++,date:d,type:'deposit',ticker:null,shares:null,pricePerShare:null,
+    amount:usd,amountSGD:+sgd.toFixed(2),sgdRate:+rate.toFixed(6),
+    note:`${n} (S$${sgd.toFixed(2)} @ ${rate.toFixed(4)})`};
   const firestoreId = await _dbAddEntry(entry);
   entry.firestoreId = firestoreId;
   ledger.push(entry);
   ['dep-amount','dep-date','dep-note'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('dep-preview').textContent='';
   closeForm('deposit-form');
   renderAll();
 }
 
 /* ─── Withdraw ─── */
 async function addWithdrawal() {
-  const a=parseFloat(document.getElementById('wit-amount').value);
+  const sgd=parseFloat(document.getElementById('wit-amount').value);
+  const rate=parseFloat(document.getElementById('wit-rate').value);
   const d=document.getElementById('wit-date').value||today();
   const n=document.getElementById('wit-note').value.trim()||'Withdrawal';
   const err=document.getElementById('wit-err');
-  if(isNaN(a)||a<=0){err.textContent='Enter a valid amount.';return;}
+  err.textContent='';
+  if(isNaN(sgd)||sgd<=0){err.textContent='Enter a valid SGD amount.';return;}
+  if(isNaN(rate)||rate<=0){err.textContent='Enter the SGD → USD exchange rate.';return;}
+  const usd=+(sgd*rate).toFixed(2);
   const bal=cashBalance();
-  if(a>bal+0.001){err.textContent=`Insufficient balance. Available: $${fmt(bal)}`;return;}
-  const entry={id:nextId++,date:d,type:'withdrawal',ticker:null,shares:null,pricePerShare:null,amount:+a.toFixed(2),note:n};
+  if(usd>bal+0.001){err.textContent=`Insufficient balance. Available: US$${fmt(bal)} (you're withdrawing US$${fmt(usd)})`;return;}
+  const entry={id:nextId++,date:d,type:'withdrawal',ticker:null,shares:null,pricePerShare:null,
+    amount:usd,amountSGD:+sgd.toFixed(2),sgdRate:+rate.toFixed(6),
+    note:`${n} (S$${sgd.toFixed(2)} @ ${rate.toFixed(4)})`};
   const firestoreId = await _dbAddEntry(entry);
   entry.firestoreId = firestoreId;
   ledger.push(entry);
   ['wit-amount','wit-date','wit-note'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('wit-preview').textContent='';
   closeForm('withdraw-form');
   renderAll();
 }
@@ -698,9 +790,12 @@ function renderLedger() {
       running+=isCredit?e.amount:-e.amount;
       const labels={deposit:'Deposit',withdrawal:'Withdraw',buy:'Buy',sell:'Sell'};
       const cls={deposit:'dep',withdrawal:'wit',buy:'buy',sell:'sell'};
+      const sgdBadge=(e.amountSGD && (e.type==='deposit'||e.type==='withdrawal'))
+        ? `<span style="font-size:11px;color:#aaa;white-space:nowrap">S$${e.amountSGD.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})}</span>`
+        : '';
       const amtHtml=isCredit
-        ?`<span class="pos">+$${fmt(e.amount)}</span>`
-        :`<span class="neg">-$${fmt(e.amount)}</span>`;
+        ?`<span class="pos">+US$${fmt(e.amount)}</span>${sgdBadge?'<br>'+sgdBadge:''}`
+        :`<span class="neg">-US$${fmt(e.amount)}</span>${sgdBadge?'<br>'+sgdBadge:''}`;
       const note=e.note||(e.ticker?`${labels[e.type]} ${e.ticker}`:labels[e.type]);
       const tr=document.createElement('tr');
       tr.innerHTML=`
@@ -711,7 +806,7 @@ function renderLedger() {
         <td class="r">${e.pricePerShare!=null?'$'+fmt(e.pricePerShare):'—'}</td>
         <td class="r">${amtHtml}</td>
         <td style="color:#888;font-size:12px;max-width:160px;overflow:hidden;text-overflow:ellipsis">${note}</td>
-        <td class="r" style="font-weight:500">$${fmt(running)}</td>
+        <td class="r" style="font-weight:500">US$${fmt(running)}</td>
         <td><button class="del-btn" onclick="deleteLedgerEntry('${e.firestoreId}', ${e.id})" title="Delete">×</button></td>
       `;
       tbody.appendChild(tr);
@@ -720,11 +815,15 @@ function renderLedger() {
 
   const bal=cashBalance();
   const balEl=document.getElementById('bal-display');
-  if(balEl){balEl.textContent='$'+fmt(bal);balEl.className='bal-main'+(bal<0?' neg':'');}
+  if(balEl){balEl.textContent='US$'+fmt(bal);balEl.className='bal-main'+(bal<0?' neg':'');}
   const deps=ledger.filter(e=>e.type==='deposit').reduce((a,e)=>a+e.amount,0);
+  const depsSGD=ledger.filter(e=>e.type==='deposit'&&e.amountSGD).reduce((a,e)=>a+e.amountSGD,0);
   const wits=ledger.filter(e=>e.type==='withdrawal').reduce((a,e)=>a+e.amount,0);
+  const witsSGD=ledger.filter(e=>e.type==='withdrawal'&&e.amountSGD).reduce((a,e)=>a+e.amountSGD,0);
   const subEl=document.getElementById('bal-sub');
-  if(subEl) subEl.textContent=deps>0?`$${fmt(deps)} deposited · $${fmt(wits)} withdrawn`:'No transactions yet';
+  if(subEl) subEl.textContent=deps>0
+    ?`US$${fmt(deps)} deposited (S$${fmt(depsSGD)}) · US$${fmt(wits)} withdrawn (S$${fmt(witsSGD)})`
+    :'No transactions yet';
 }
 
 /* ══════════════════════════════════════
