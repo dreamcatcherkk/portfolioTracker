@@ -130,7 +130,8 @@
   <div class="tabs">
     <button class="tab active" onclick="switchTab('holdings')">Holdings</button>
     <button class="tab" onclick="switchTab('snapshots')">Snapshots</button>
-    <button class="tab" onclick="switchTab('account')">Account</button>
+    <button class="tab" onclick="switchTab('account')">Transactions</button>
+    <button class="tab" onclick="switchTab('watchlist')">Watchlist</button>
   </div>
 
   <!-- ══════════ HOLDINGS TAB ══════════ -->
@@ -158,7 +159,7 @@
         <tbody id="holdings-body"></tbody>
       </table>
     </div>
-    <div class="note">Holdings are derived from your buy/sell transactions in the Account tab. Prices from Finnhub.</div>
+    <div class="note">Holdings are derived from your buy/sell transactions in the Transactions tab. Prices from Finnhub.</div>
   </div>
 
   <!-- ══════════ SNAPSHOTS TAB ══════════ -->
@@ -251,7 +252,7 @@
 
     <!-- Ledger table -->
     <div class="table-wrap">
-      <table style="min-width:580px">
+      <table style="min-width:640px">
         <thead>
           <tr>
             <th style="width:90px">Date</th>
@@ -259,13 +260,48 @@
             <th style="width:70px">Ticker</th>
             <th class="r" style="width:70px">Shares</th>
             <th class="r" style="width:100px">Price/share</th>
-            <th class="r" style="width:110px">Amount</th>
+            <th class="r" style="width:110px">Amount (USD)</th>
+            <th class="r" style="width:110px">Amount (SGD)</th>
             <th style="width:160px">Note</th>
             <th class="r" style="width:120px">Balance after</th>
             <th style="width:36px"></th>
           </tr>
         </thead>
         <tbody id="ledger-body"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ══════════ WATCHLIST TAB ══════════ -->
+  <div class="tab-panel" id="tab-watchlist">
+    <div class="actions">
+      <button onclick="toggleForm('watchlist-form')">+ Add to watchlist</button>
+      <button onclick="refreshWatchlist()"><span id="wl-spin" style="display:none" class="spin">↻</span> Refresh prices</button>
+    </div>
+    <div class="add-form" id="watchlist-form">
+      <div style="font-size:12px;font-weight:500;color:#555;margin-bottom:8px">Add stock to watchlist</div>
+      <div class="form-row">
+        <div><label>Ticker</label><input id="wl-ticker" type="text" placeholder="NVDA" style="text-transform:uppercase"></div>
+        <div><label>Target price ($, optional)</label><input id="wl-target" type="number" placeholder="500.00" min="0" step="any"></div>
+        <div><label>Note (optional)</label><input id="wl-note" type="text" placeholder="Watching for pullback"></div>
+      </div>
+      <div style="display:flex;gap:8px"><button onclick="addWatchlistItem()">Add</button><button onclick="closeForm('watchlist-form')">Cancel</button></div>
+      <div id="wl-err" class="err"></div>
+    </div>
+    <div class="table-wrap">
+      <table style="min-width:560px">
+        <thead>
+          <tr>
+            <th style="width:90px">Ticker</th>
+            <th class="r" style="width:110px">Live price</th>
+            <th class="r" style="width:90px">Day chg</th>
+            <th class="r" style="width:110px">Target price</th>
+            <th class="r" style="width:110px">vs Target</th>
+            <th style="width:180px">Note</th>
+            <th style="width:36px"></th>
+          </tr>
+        </thead>
+        <tbody id="watchlist-body"></tbody>
       </table>
     </div>
   </div>
@@ -488,12 +524,13 @@ function switchTab(name) {
   document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
   document.getElementById('tab-'+name).classList.add('active');
-  const tabNames=['holdings','snapshots','account'];
+  const tabNames=['holdings','snapshots','account','watchlist'];
   const idx=tabNames.indexOf(name);
   document.querySelectorAll('.tab')[idx].classList.add('active');
   if(name==='account') { populateSellTicker(); renderLedger(); }
   if(name==='holdings') renderHoldings();
   if(name==='snapshots') renderSnapshots();
+  if(name==='watchlist') renderWatchlist();
 }
 
 /* ─── Forms ─── */
@@ -792,7 +829,7 @@ function renderHoldings() {
   let totalMktVal=0, totalCostBasis=0;
 
   if(holdings.length===0) {
-    tbody.innerHTML=`<tr><td colspan="8" class="empty">No holdings yet — buy stocks in the Account tab.</td></tr>`;
+    tbody.innerHTML=`<tr><td colspan="8" class="empty">No holdings yet — buy stocks in the Transactions tab.</td></tr>`;
   } else {
     holdings.forEach(h=>{
       const hasPrice=h.price!==null;
@@ -839,7 +876,7 @@ function renderLedger() {
   tbody.innerHTML='';
 
   if(sorted.length===0) {
-    tbody.innerHTML=`<tr><td colspan="9" class="empty">No transactions yet — start by making a deposit.</td></tr>`;
+    tbody.innerHTML=`<tr><td colspan="10" class="empty">No transactions yet — start by making a deposit.</td></tr>`;
   } else {
     let running=0;
     sorted.forEach(e=>{
@@ -847,12 +884,12 @@ function renderLedger() {
       running+=isCredit?e.amount:-e.amount;
       const labels={deposit:'Deposit',withdrawal:'Withdraw',buy:'Buy',sell:'Sell'};
       const cls={deposit:'dep',withdrawal:'wit',buy:'buy',sell:'sell'};
-      const sgdBadge=(e.amountSGD && (e.type==='deposit'||e.type==='withdrawal'))
-        ? `<span style="font-size:11px;color:#aaa;white-space:nowrap">S$${e.amountSGD.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})}</span>`
-        : '';
+      const sgdAmt=(e.amountSGD && (e.type==='deposit'||e.type==='withdrawal'))
+        ? `<span style="white-space:nowrap">${isCredit?'+':'−'}S$${e.amountSGD.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})}</span>`
+        : '<span style="color:#ccc">—</span>';
       const amtHtml=isCredit
-        ?`<span class="pos">+US$${fmt(e.amount)}</span>${sgdBadge?'<br>'+sgdBadge:''}`
-        :`<span class="neg">-US$${fmt(e.amount)}</span>${sgdBadge?'<br>'+sgdBadge:''}`;
+        ?`<span class="pos">+US$${fmt(e.amount)}</span>`
+        :`<span class="neg">-US$${fmt(e.amount)}</span>`;
       const note=e.note||(e.ticker?`${labels[e.type]} ${e.ticker}`:labels[e.type]);
       const tr=document.createElement('tr');
       tr.innerHTML=`
@@ -862,6 +899,7 @@ function renderLedger() {
         <td class="r">${e.shares!=null?(e.shares%1===0?e.shares:e.shares.toFixed(4)):'—'}</td>
         <td class="r">${e.pricePerShare!=null?'$'+fmt(e.pricePerShare):'—'}</td>
         <td class="r">${amtHtml}</td>
+        <td class="r">${sgdAmt}</td>
         <td style="color:#888;font-size:12px;max-width:160px;overflow:hidden;text-overflow:ellipsis">${note}</td>
         <td class="r" style="font-weight:500">US$${fmt(running)}</td>
         <td><button class="del-btn" onclick="deleteLedgerEntry('${e.firestoreId}', ${e.id})" title="Delete">×</button></td>
@@ -962,7 +1000,7 @@ function renderSnapshots() {
   if(!container) return;
 
   if(!months.length) {
-    container.innerHTML=`<div class="snap-empty">No transactions yet. Add some activity in the Account tab first.</div>`;
+    container.innerHTML=`<div class="snap-empty">No transactions yet. Add some activity in the Transactions tab first.</div>`;
     return;
   }
 
@@ -1078,6 +1116,95 @@ function snapNav(dir) {
 function toggleSnapExpand(i) {
   const el=document.getElementById('snap-expand-'+i);
   if(el) el.classList.toggle('open');
+}
+
+/* ══════════════════════════════════════
+   WATCHLIST LOGIC
+══════════════════════════════════════ */
+
+let watchlist = JSON.parse(localStorage.getItem('watchlist') || '[]');
+let watchlistPrices = {};
+
+function saveWatchlist() {
+  localStorage.setItem('watchlist', JSON.stringify(watchlist));
+}
+
+function addWatchlistItem() {
+  const ticker = document.getElementById('wl-ticker').value.trim().toUpperCase();
+  const target = parseFloat(document.getElementById('wl-target').value);
+  const note = document.getElementById('wl-note').value.trim();
+  const err = document.getElementById('wl-err');
+  err.textContent = '';
+  if (!ticker) { err.textContent = 'Enter a ticker symbol.'; return; }
+  if (watchlist.find(w => w.ticker === ticker)) { err.textContent = `${ticker} is already on your watchlist.`; return; }
+  watchlist.push({ ticker, target: isNaN(target) || target <= 0 ? null : +target.toFixed(2), note });
+  saveWatchlist();
+  ['wl-ticker','wl-target','wl-note'].forEach(id => document.getElementById(id).value = '');
+  closeForm('watchlist-form');
+  renderWatchlist();
+  fetchWatchlistPrice(ticker).then(() => renderWatchlist()).catch(() => {});
+}
+
+function removeWatchlistItem(ticker) {
+  watchlist = watchlist.filter(w => w.ticker !== ticker);
+  delete watchlistPrices[ticker];
+  saveWatchlist();
+  renderWatchlist();
+}
+
+async function fetchWatchlistPrice(ticker) {
+  try {
+    const r = await fetchPrice(ticker);
+    watchlistPrices[ticker] = r;
+  } catch(e) {
+    watchlistPrices[ticker] = null;
+  }
+}
+
+function setWlSpin(on) { document.getElementById('wl-spin').style.display = on ? 'inline' : 'none'; }
+
+async function refreshWatchlist() {
+  if (!watchlist.length) return;
+  setWlSpin(true);
+  await Promise.allSettled(watchlist.map(w => fetchWatchlistPrice(w.ticker)));
+  setWlSpin(false);
+  renderWatchlist();
+}
+
+function renderWatchlist() {
+  const tbody = document.getElementById('watchlist-body');
+  if (!tbody) return;
+  tbody.innerHTML = '';
+  if (!watchlist.length) {
+    tbody.innerHTML = `<tr><td colspan="7" class="empty">No stocks on your watchlist yet — click "+ Add to watchlist" to get started.</td></tr>`;
+    return;
+  }
+  watchlist.forEach(w => {
+    const p = watchlistPrices[w.ticker];
+    const hasPrice = p && p.price != null;
+    const priceHtml = hasPrice ? `$${fmt(p.price)}` : '<span class="dot"></span>';
+    const chgHtml = (hasPrice && p.chg != null) ? `<span class="badge ${p.chg >= 0 ? 'pos' : 'neg'}">${fmtPct(p.chg)}</span>` : '—';
+    let targetHtml = '—', vsTargetHtml = '—';
+    if (w.target) {
+      targetHtml = `$${fmt(w.target)}`;
+      if (hasPrice) {
+        const diff = p.price - w.target;
+        const diffPct = (diff / w.target) * 100;
+        vsTargetHtml = `<span class="${diff >= 0 ? 'pos' : 'neg'}">${diff >= 0 ? '+' : ''}$${fmt(diff)} (${fmtPct(diffPct)})</span>`;
+      }
+    }
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td style="font-weight:500">${w.ticker}</td>
+      <td class="r">${priceHtml}</td>
+      <td class="r">${chgHtml}</td>
+      <td class="r">${targetHtml}</td>
+      <td class="r">${vsTargetHtml}</td>
+      <td style="color:#888;font-size:12px">${w.note || '—'}</td>
+      <td><button class="del-btn" onclick="removeWatchlistItem('${w.ticker}')" title="Remove">×</button></td>
+    `;
+    tbody.appendChild(tr);
+  });
 }
 
 async function doTakeSnapshot(ym) {
