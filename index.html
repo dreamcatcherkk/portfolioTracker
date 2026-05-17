@@ -58,7 +58,7 @@
   .bal-sub{font-size:13px;color:#888;margin-top:2px}
   .empty{text-align:center;padding:2.5rem 1rem;color:#aaa;font-size:13px}
 
-  /* â”€â”€ Snapshots tab â”€â”€ */
+  /* ── Snapshots tab ── */
   .snap-toolbar{display:flex;gap:8px;align-items:center;margin-bottom:1.25rem;flex-wrap:wrap}
   .snap-toolbar select{width:auto;min-width:120px}
   .snap-toolbar label{font-size:12px;color:#666}
@@ -85,28 +85,13 @@
   .snap-info{font-size:12px;color:#888;background:#fff;border:1px solid #e5e5e3;border-radius:8px;padding:.75rem 1rem;margin-top:1rem}
   .snap-empty{text-align:center;padding:3rem 1rem;color:#aaa;font-size:13px}
 
-  /* â”€â”€ Statement fields â”€â”€ */
-  .stmt-fields{background:#fff;border:1px solid #e5e5e3;border-radius:12px;padding:1.1rem 1.4rem;margin-bottom:1.5rem}
-  .stmt-fields-title{font-size:12px;font-weight:500;color:#555;margin-bottom:10px}
-  .stmt-fields-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;align-items:end}
-  .stmt-field{display:flex;flex-direction:column;gap:3px}
-  .stmt-field label{font-size:11px;color:#888}
-  .stmt-field input{padding:6px 10px;border:1px solid #d0d0cc;border-radius:7px;font-size:13px;font-family:inherit;background:#fafaf8;outline:none;color:#1a1a1a;width:100%}
-  .stmt-field input:focus{border-color:#888;background:#fff}
-  .stmt-save-btn{padding:6px 14px;font-size:12px;align-self:flex-end}
-
-  /* â”€â”€ Snapshot summary table â”€â”€ */
-  .snap-summary-table table{min-width:900px}
-  .snap-summary-table th,.snap-summary-table td{font-size:12px;padding:9px 12px}
-  .snap-summary-table tr.current-month td{background:#fafaf8;font-weight:500}
-
-  /* â”€â”€ Auth â”€â”€ */
+  /* ── Auth ── */
   #auth-container{display:flex;justify-content:flex-end;align-items:center;margin-bottom:1rem}
   #auth-signed-in{display:flex;align-items:center;gap:10px;font-size:13px;color:#555}
   #signin-btn{background:#fff;border:1px solid #d0d0cc;border-radius:8px;padding:7px 14px;font-size:13px;cursor:pointer;font-family:inherit}
   #signout-btn{background:none;border:1px solid #d0d0cc;border-radius:8px;padding:5px 12px;font-size:12px;cursor:pointer;font-family:inherit;color:#888}
 
-  /* â”€â”€ Loading overlay â”€â”€ */
+  /* ── Loading overlay ── */
   #loading-overlay{position:fixed;inset:0;background:#f5f5f3;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:100;gap:12px}
   #loading-overlay p{font-size:13px;color:#888}
   .spinner{width:28px;height:28px;border:3px solid #e5e5e3;border-top-color:#1a1a1a;border-radius:50%;animation:spin 0.8s linear infinite}
@@ -114,20 +99,20 @@
 </head>
 <body>
 
-<!-- Loading overlay -->
+<!-- Loading overlay — shown until auth state is known -->
 <div id="loading-overlay">
   <div class="spinner"></div>
-  <p>Loadingâ€¦</p>
+  <p>Loading…</p>
 </div>
 
-<!-- Sign-in screen -->
+<!-- Sign-in screen — shown when signed out -->
 <div id="signin-screen" style="display:none;text-align:center;padding:4rem 1rem">
   <h1 style="margin-bottom:8px">My portfolio</h1>
   <p style="font-size:13px;color:#888;margin-bottom:1.5rem">Sign in to access your portfolio across all devices.</p>
   <button id="signin-btn" onclick="handleSignIn()" style="padding:10px 24px;font-size:14px">Sign in with Google</button>
 </div>
 
-<!-- Main app -->
+<!-- Main app — shown when signed in -->
 <div id="app" style="display:none">
 
   <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;flex-wrap:wrap;gap:8px">
@@ -149,13 +134,13 @@
     <button class="tab" onclick="switchTab('watchlist')">Watchlist</button>
   </div>
 
-  <!-- â•â•â•â•â•â•â•â•â•â• HOLDINGS TAB â•â•â•â•â•â•â•â•â•â• -->
+  <!-- ══════════ HOLDINGS TAB ══════════ -->
   <div class="tab-panel active" id="tab-holdings">
     <div class="summary-grid" id="summary"></div>
     <div class="actions">
       <button onclick="switchTab('account');toggleForm('buy-form')">+ Buy stock</button>
-      <button onclick="switchTab('account');toggleForm('sell-form')">âˆ’ Sell stock</button>
-      <button onclick="refreshAll()"><span id="spin" style="display:none" class="spin">â†»</span> Refresh prices</button>
+      <button onclick="switchTab('account');toggleForm('sell-form')">− Sell stock</button>
+      <button onclick="refreshAll()"><span id="spin" style="display:none" class="spin">↻</span> Refresh prices</button>
     </div>
     <div class="table-wrap" id="holdings-wrap">
       <table>
@@ -177,12 +162,12 @@
     <div class="note">Holdings are derived from your buy/sell transactions in the Transactions tab. Prices from Finnhub.</div>
   </div>
 
-  <!-- â•â•â•â•â•â•â•â•â•â• SNAPSHOTS TAB â•â•â•â•â•â•â•â•â•â• -->
+  <!-- ══════════ SNAPSHOTS TAB ══════════ -->
   <div class="tab-panel" id="tab-snapshots">
     <div id="snap-content"></div>
   </div>
 
-  <!-- â•â•â•â•â•â•â•â•â•â• ACCOUNT TAB â•â•â•â•â•â•â•â•â•â• -->
+  <!-- ══════════ ACCOUNT TAB ══════════ -->
   <div class="tab-panel" id="tab-account">
 
     <div class="bal-banner">
@@ -193,7 +178,7 @@
       </div>
       <div style="display:flex;gap:8px;flex-wrap:wrap">
         <button onclick="toggleForm('deposit-form')">+ Deposit</button>
-        <button onclick="toggleForm('withdraw-form')">âˆ’ Withdraw</button>
+        <button onclick="toggleForm('withdraw-form')">− Withdraw</button>
         <button onclick="toggleForm('buy-form')">Buy stock</button>
         <button onclick="toggleForm('sell-form')">Sell stock</button>
       </div>
@@ -208,7 +193,7 @@
           <input id="dep-amount" type="number" placeholder="13500.00" min="0.01" step="any" oninput="updateDepPreview()">
         </div>
         <div>
-          <label>SGD â†’ USD rate</label>
+          <label>SGD → USD rate</label>
           <input id="dep-rate" type="number" placeholder="0.7400" min="0.0001" step="any" oninput="updateDepPreview()">
         </div>
         <div><label>Date</label><input id="dep-date" type="date" onchange="onDepDateChange()"></div>
@@ -228,7 +213,7 @@
           <input id="wit-amount" type="number" placeholder="1350.00" min="0.01" step="any" oninput="updateWitPreview()">
         </div>
         <div>
-          <label>SGD â†’ USD rate</label>
+          <label>SGD → USD rate</label>
           <input id="wit-rate" type="number" placeholder="0.7400" min="0.0001" step="any" oninput="updateWitPreview()">
         </div>
         <div><label>Date</label><input id="wit-date" type="date" onchange="onWitDateChange()"></div>
@@ -267,10 +252,9 @@
 
     <!-- Ledger table -->
     <div class="table-wrap">
-      <table style="min-width:700px">
+      <table style="min-width:640px">
         <thead>
           <tr>
-            <th style="width:110px">Total deposits</th>
             <th style="width:90px">Date</th>
             <th style="width:80px">Type</th>
             <th style="width:70px">Ticker</th>
@@ -288,11 +272,11 @@
     </div>
   </div>
 
-  <!-- â•â•â•â•â•â•â•â•â•â• WATCHLIST TAB â•â•â•â•â•â•â•â•â•â• -->
+  <!-- ══════════ WATCHLIST TAB ══════════ -->
   <div class="tab-panel" id="tab-watchlist">
     <div class="actions">
       <button onclick="toggleForm('watchlist-form')">+ Add to watchlist</button>
-      <button onclick="refreshWatchlist()"><span id="wl-spin" style="display:none" class="spin">â†»</span> Refresh prices</button>
+      <button onclick="refreshWatchlist()"><span id="wl-spin" style="display:none" class="spin">↻</span> Refresh prices</button>
     </div>
     <div class="add-form" id="watchlist-form">
       <div style="font-size:12px;font-weight:500;color:#555;margin-bottom:8px">Add stock to watchlist</div>
@@ -324,9 +308,9 @@
 
 </div><!-- end #app -->
 
-<!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+<!-- ══════════════════════════════════════
      FIREBASE MODULE SCRIPT
-â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
+══════════════════════════════════════ -->
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import {
@@ -337,7 +321,8 @@ import {
   query, orderBy, setDoc, getDoc
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
-const firebaseConfig = {
+// ─── YOUR FIREBASE CONFIG — fill these in ───────────────────────────────────
+ const firebaseConfig = {
   apiKey: "AIzaSyCAL3_ct9JCeasfD4RYEwiOvqGVs-NN53g",
   authDomain: "portfoliotracker-6250e.firebaseapp.com",
   projectId: "portfoliotracker-6250e",
@@ -345,14 +330,18 @@ const firebaseConfig = {
   messagingSenderId: "341928612090",
   appId: "1:341928612090:web:26334a15e7ed7ce6f5b943"
 };
+// ────────────────────────────────────────────────────────────────────────────
 
 const app      = initializeApp(firebaseConfig);
 const auth     = getAuth(app);
 const db       = getFirestore(app);
 const provider = new GoogleAuthProvider();
 
+// Expose auth actions to onclick handlers
 window.handleSignIn  = () => signInWithPopup(auth, provider).catch(console.error);
 window.handleSignOut = () => signOut(auth);
+
+// ─── Firestore helpers ───────────────────────────────────────────────────────
 
 function uid() { return auth.currentUser.uid; }
 
@@ -364,7 +353,7 @@ async function dbLoadLedger() {
 
 async function dbAddEntry(entry) {
   const ref = await addDoc(collection(db, 'users', uid(), 'ledger'), entry);
-  return ref.id;
+  return ref.id; // firestoreId
 }
 
 async function dbDeleteEntry(firestoreId) {
@@ -386,15 +375,18 @@ async function dbDeleteSnapshot(ym) {
   await deleteDoc(doc(db, 'users', uid(), 'snapshots', ym));
 }
 
+// ─── Migration: one-time move from localStorage to Firestore ─────────────────
+
 async function migrateIfNeeded() {
   const oldLedger    = localStorage.getItem('ledger');
   const oldSnapshots = localStorage.getItem('snapshots');
   if (!oldLedger && !oldSnapshots) return;
-  console.log('Migrating localStorage data to Firestoreâ€¦');
+
+  console.log('Migrating localStorage data to Firestore…');
   if (oldLedger) {
     const entries = JSON.parse(oldLedger);
     for (const e of entries) {
-      const { id, ...rest } = e;
+      const { id, ...rest } = e; // drop old numeric id
       await dbAddEntry(rest);
     }
     localStorage.removeItem('ledger');
@@ -409,22 +401,29 @@ async function migrateIfNeeded() {
   console.log('Migration complete.');
 }
 
+// ─── Auth state ──────────────────────────────────────────────────────────────
+
 onAuthStateChanged(auth, async (user) => {
   const overlay      = document.getElementById('loading-overlay');
   const signinScreen = document.getElementById('signin-screen');
   const appEl        = document.getElementById('app');
 
   if (user) {
+    // Show app
     overlay.style.display      = 'none';
     signinScreen.style.display = 'none';
     appEl.style.display        = 'block';
     document.getElementById('auth-user-name').textContent = user.displayName || user.email;
 
+    // Migrate then load
     await migrateIfNeeded();
     const [entries, snaps] = await Promise.all([dbLoadLedger(), dbLoadSnapshots()]);
+
+    // Hand data to the main app script
     window._initApp(entries, snaps, dbAddEntry, dbDeleteEntry, dbSaveSnapshot, dbDeleteSnapshot);
 
   } else {
+    // Show sign-in screen
     overlay.style.display      = 'none';
     signinScreen.style.display = 'block';
     appEl.style.display        = 'none';
@@ -433,20 +432,23 @@ onAuthStateChanged(auth, async (user) => {
 });
 </script>
 
-<!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-     MAIN APP SCRIPT
-â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
+<!-- ══════════════════════════════════════
+     MAIN APP SCRIPT (non-module, unchanged logic)
+══════════════════════════════════════ -->
 <script>
 const API_KEY = 'd7rrhh1r01qm28g7ebrgd7rrhh1r01qm28g7ebs0';
 
+// These are populated by _initApp once Firebase loads
 let ledger    = [];
 let snapshots = {};
 let nextId    = 1;
 let priceCache = {};
 let snapViewMonth = null;
 
+// Firestore write functions — set by _initApp
 let _dbAddEntry, _dbDeleteEntry, _dbSaveSnapshot, _dbDeleteSnapshot;
 
+// Called by the Firebase module once data is loaded
 window._initApp = function(entries, snaps, dbAdd, dbDel, dbSaveSnap, dbDelSnap) {
   _dbAddEntry      = dbAdd;
   _dbDeleteEntry   = dbDel;
@@ -457,6 +459,7 @@ window._initApp = function(entries, snaps, dbAdd, dbDel, dbSaveSnap, dbDelSnap) 
   snapshots = snaps;
   snapViewMonth = null;
 
+  // Re-establish nextId above highest existing id
   nextId = (ledger.reduce((m, e) => Math.max(m, e.id || 0), 0)) + 1;
 
   renderAll();
@@ -474,10 +477,10 @@ window._resetApp = function() {
 function today() { return new Date().toISOString().slice(0,10); }
 function fmt(n)  { return n.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}); }
 function fmtPct(n){ return (n>=0?'+':'')+n.toFixed(2)+'%'; }
-function fmtDate(d){ if(!d)return'â€”'; const[y,m,day]=d.split('-'); return`${day}/${m}/${y}`; }
+function fmtDate(d){ if(!d)return'—'; const[y,m,day]=d.split('-'); return`${day}/${m}/${y}`; }
 function monthLabel(ym){ const [y,m]=ym.split('-'); return new Date(y,m-1,1).toLocaleDateString('en-US',{month:'long',year:'numeric'}); }
 
-/* â”€â”€â”€ Derive holdings from ledger â”€â”€â”€ */
+/* ─── Derive holdings from ledger ─── */
 function computeHoldingsAsOf(dateStr) {
   const map = {};
   const sorted = [...ledger]
@@ -516,14 +519,7 @@ function cashBalanceAsOf(dateStr) {
 
 function cashBalance() { return cashBalanceAsOf(today()); }
 
-/* â”€â”€â”€ Running total deposits in SGD as of a date â”€â”€â”€ */
-function cumulativeDepositsSGDAsOf(dateStr) {
-  return ledger
-    .filter(e => e.type === 'deposit' && e.date <= dateStr && e.amountSGD)
-    .reduce((acc, e) => acc + e.amountSGD, 0);
-}
-
-/* â”€â”€â”€ Tabs â”€â”€â”€ */
+/* ─── Tabs ─── */
 function switchTab(name) {
   document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
@@ -537,7 +533,7 @@ function switchTab(name) {
   if(name==='watchlist') renderWatchlist();
 }
 
-/* â”€â”€â”€ Forms â”€â”€â”€ */
+/* ─── Forms ─── */
 function toggleForm(id) {
   const isOpen = document.getElementById(id).classList.contains('open');
   closeAllForms();
@@ -560,28 +556,40 @@ function openForm(id) {
   if(first) first.focus();
 }
 
-/* â”€â”€â”€ SGD/USD rate helpers â”€â”€â”€ */
-const _sgdRateCache = {};
+/* ─── SGD/USD rate helpers ─── */
+const _sgdRateCache = {}; // keyed by 'YYYY-MM-DD' or 'live'
 
+/**
+ * Fetch SGD→USD rate for a given date string ('YYYY-MM-DD').
+ * Uses Finnhub forex/candle for historical dates, forex/rates for today.
+ * Returns the rate as a number, or null on failure.
+ */
 async function fetchSGDRateForDate(dateStr) {
   const cacheKey = dateStr || 'live';
   if (_sgdRateCache[cacheKey]) return _sgdRateCache[cacheKey];
+
   const isToday = !dateStr || dateStr === today();
+
   try {
     if (isToday) {
+      // Live rate
       const res = await fetch(`https://finnhub.io/api/v1/forex/rates?base=USD&token=${API_KEY}`);
       const data = await res.json();
       const usdPerSgd = data.quote && data.quote.SGD ? +(1 / data.quote.SGD).toFixed(6) : null;
       if (usdPerSgd) _sgdRateCache[cacheKey] = usdPerSgd;
       return usdPerSgd;
     } else {
+      // Historical candle: request a 1-day window around the target date
+      // Finnhub forex candle: symbol=OANDA:SGD_USD, resolution=D
       const d = new Date(dateStr + 'T12:00:00Z');
-      const from = Math.floor(d.getTime() / 1000) - 86400;
-      const to   = Math.floor(d.getTime() / 1000) + 86400;
+      const from = Math.floor(d.getTime() / 1000) - 86400; // day before
+      const to   = Math.floor(d.getTime() / 1000) + 86400; // day after
       const url = `https://finnhub.io/api/v1/forex/candle?symbol=OANDA:SGD_USD&resolution=D&from=${from}&to=${to}&token=${API_KEY}`;
       const res = await fetch(url);
       const data = await res.json();
+      // data.c = array of closing prices (SGD/USD directly)
       if (data.s === 'ok' && data.c && data.c.length) {
+        // Pick the candle closest to our target date using timestamps
         let best = null, bestDiff = Infinity;
         const target = d.getTime() / 1000;
         data.t.forEach((ts, i) => {
@@ -594,17 +602,22 @@ async function fetchSGDRateForDate(dateStr) {
       }
       return null;
     }
-  } catch(e) { return null; }
+  } catch(e) {
+    return null;
+  }
 }
 
 async function fetchAndPrefillSGDRate(formId, dateStr) {
   const rateInputId = formId === 'deposit-form' ? 'dep-rate' : 'wit-rate';
   const previewFn   = formId === 'deposit-form' ? updateDepPreview : updateWitPreview;
   const rateEl = document.getElementById(rateInputId);
+
   rateEl.value = '';
-  rateEl.placeholder = 'Fetchingâ€¦';
+  rateEl.placeholder = 'Fetching…';
   previewFn();
+
   const rate = await fetchSGDRateForDate(dateStr || today());
+
   if (rate) {
     rateEl.value = rate;
     rateEl.placeholder = '0.7400';
@@ -615,10 +628,13 @@ async function fetchAndPrefillSGDRate(formId, dateStr) {
 }
 
 function onDepDateChange() {
-  fetchAndPrefillSGDRate('deposit-form', document.getElementById('dep-date').value);
+  const dateVal = document.getElementById('dep-date').value;
+  fetchAndPrefillSGDRate('deposit-form', dateVal);
 }
+
 function onWitDateChange() {
-  fetchAndPrefillSGDRate('withdraw-form', document.getElementById('wit-date').value);
+  const dateVal = document.getElementById('wit-date').value;
+  fetchAndPrefillSGDRate('withdraw-form', dateVal);
 }
 
 function updateDepPreview() {
@@ -628,9 +644,11 @@ function updateDepPreview() {
   const el = document.getElementById('dep-preview');
   if(!isNaN(sgd) && sgd > 0 && !isNaN(rate) && rate > 0) {
     const usd = sgd * rate;
-    const dateNote = dateVal && dateVal !== today() ? ` Â· rate for ${fmtDate(dateVal)}` : ' Â· live rate';
-    el.innerHTML = `S$${sgd.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})} Ã— ${rate.toFixed(4)} = <strong>US$${fmt(usd)}</strong> will be added to your balance<span style="color:#aaa">${dateNote}</span>`;
-  } else { el.textContent = ''; }
+    const dateNote = dateVal && dateVal !== today() ? ` · rate for ${fmtDate(dateVal)}` : ' · live rate';
+    el.innerHTML = `S$${sgd.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})} × ${rate.toFixed(4)} = <strong>US$${fmt(usd)}</strong> will be added to your balance<span style="color:#aaa">${dateNote}</span>`;
+  } else {
+    el.textContent = '';
+  }
 }
 
 function updateWitPreview() {
@@ -640,11 +658,12 @@ function updateWitPreview() {
   const el = document.getElementById('wit-preview');
   if(!isNaN(sgd) && sgd > 0 && !isNaN(rate) && rate > 0) {
     const usd = sgd * rate;
-    const dateNote = dateVal && dateVal !== today() ? ` Â· rate for ${fmtDate(dateVal)}` : ' Â· live rate';
-    el.innerHTML = `S$${sgd.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})} Ã— ${rate.toFixed(4)} = <strong>US$${fmt(usd)}</strong> will be deducted from your balance<span style="color:#aaa">${dateNote}</span>`;
-  } else { el.textContent = ''; }
+    const dateNote = dateVal && dateVal !== today() ? ` · rate for ${fmtDate(dateVal)}` : ' · live rate';
+    el.innerHTML = `S$${sgd.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})} × ${rate.toFixed(4)} = <strong>US$${fmt(usd)}</strong> will be deducted from your balance<span style="color:#aaa">${dateNote}</span>`;
+  } else {
+    el.textContent = '';
+  }
 }
-
 function closeForm(id) { document.getElementById(id).classList.remove('open'); }
 function closeAllForms() { document.querySelectorAll('.add-form').forEach(f=>f.classList.remove('open')); }
 
@@ -652,13 +671,13 @@ function populateSellTicker() {
   const holdings = computeHoldings();
   const sel = document.getElementById('s-ticker');
   if(holdings.length===0) {
-    sel.innerHTML='<option value="">â€” no holdings â€”</option>';
+    sel.innerHTML='<option value="">— no holdings —</option>';
   } else {
     sel.innerHTML = holdings.map(h=>`<option value="${h.ticker}">${h.ticker} (${h.shares%1===0?h.shares:h.shares.toFixed(4)} shares)</option>`).join('');
   }
 }
 
-/* â”€â”€â”€ Deposit â”€â”€â”€ */
+/* ─── Deposit ─── */
 async function addDeposit() {
   const sgd=parseFloat(document.getElementById('dep-amount').value);
   const rate=parseFloat(document.getElementById('dep-rate').value);
@@ -667,7 +686,7 @@ async function addDeposit() {
   const err=document.getElementById('dep-err');
   err.textContent='';
   if(isNaN(sgd)||sgd<=0){err.textContent='Enter a valid SGD amount.';return;}
-  if(isNaN(rate)||rate<=0){err.textContent='Enter the SGD â†’ USD exchange rate.';return;}
+  if(isNaN(rate)||rate<=0){err.textContent='Enter the SGD → USD exchange rate.';return;}
   const usd=+(sgd*rate).toFixed(2);
   const entry={id:nextId++,date:d,type:'deposit',ticker:null,shares:null,pricePerShare:null,
     amount:usd,amountSGD:+sgd.toFixed(2),sgdRate:+rate.toFixed(6),
@@ -681,7 +700,7 @@ async function addDeposit() {
   renderAll();
 }
 
-/* â”€â”€â”€ Withdraw â”€â”€â”€ */
+/* ─── Withdraw ─── */
 async function addWithdrawal() {
   const sgd=parseFloat(document.getElementById('wit-amount').value);
   const rate=parseFloat(document.getElementById('wit-rate').value);
@@ -690,7 +709,7 @@ async function addWithdrawal() {
   const err=document.getElementById('wit-err');
   err.textContent='';
   if(isNaN(sgd)||sgd<=0){err.textContent='Enter a valid SGD amount.';return;}
-  if(isNaN(rate)||rate<=0){err.textContent='Enter the SGD â†’ USD exchange rate.';return;}
+  if(isNaN(rate)||rate<=0){err.textContent='Enter the SGD → USD exchange rate.';return;}
   const usd=+(sgd*rate).toFixed(2);
   const bal=cashBalance();
   if(usd>bal+0.001){err.textContent=`Insufficient balance. Available: US$${fmt(bal)} (you're withdrawing US$${fmt(usd)})`;return;}
@@ -706,7 +725,7 @@ async function addWithdrawal() {
   renderAll();
 }
 
-/* â”€â”€â”€ Buy â”€â”€â”€ */
+/* ─── Buy ─── */
 async function doBuy() {
   const t=document.getElementById('b-ticker').value.trim().toUpperCase();
   const s=parseFloat(document.getElementById('b-shares').value);
@@ -730,7 +749,7 @@ async function doBuy() {
   fetchPrice(t).then(r=>{ priceCache[t]=r; renderAll(); }).catch(()=>{});
 }
 
-/* â”€â”€â”€ Sell â”€â”€â”€ */
+/* ─── Sell ─── */
 async function doSell() {
   const t=document.getElementById('s-ticker').value;
   const s=parseFloat(document.getElementById('s-shares').value);
@@ -755,14 +774,14 @@ async function doSell() {
   renderAll();
 }
 
-/* â”€â”€â”€ Delete ledger entry â”€â”€â”€ */
+/* ─── Delete ledger entry ─── */
 async function deleteLedgerEntry(firestoreId, localId) {
   await _dbDeleteEntry(firestoreId);
   ledger = ledger.filter(e => e.firestoreId !== firestoreId);
   renderAll();
 }
 
-/* â”€â”€â”€ Fetch price â”€â”€â”€ */
+/* ─── Fetch price ─── */
 async function fetchPrice(ticker) {
   const res=await fetch(`https://finnhub.io/api/v1/quote?symbol=${encodeURIComponent(ticker)}&token=${API_KEY}`);
   if(!res.ok) throw new Error('HTTP '+res.status);
@@ -777,22 +796,25 @@ async function refreshAll() {
   const holdings=computeHoldings();
   if(holdings.length===0) return;
   setSpin(true);
-  document.getElementById('ts').textContent='Fetching live pricesâ€¦';
+  document.getElementById('ts').textContent='Fetching live prices…';
   const results=await Promise.allSettled(holdings.map(h=>fetchPrice(h.ticker).then(r=>({ticker:h.ticker,...r}))));
   let ok=0;
-  results.forEach(r=>{ if(r.status==='fulfilled'){priceCache[r.value.ticker]=r.value;ok++;} });
+  results.forEach(r=>{
+    if(r.status==='fulfilled'){priceCache[r.value.ticker]=r.value;ok++;}
+  });
   setSpin(false);
-  document.getElementById('ts').textContent=`${ok}/${holdings.length} prices updated Â· ${new Date().toLocaleTimeString()}`;
+  document.getElementById('ts').textContent=`${ok}/${holdings.length} prices updated · ${new Date().toLocaleTimeString()}`;
   renderAll();
 }
 
-/* â”€â”€â”€ Render all â”€â”€â”€ */
+/* ─── Render all ─── */
 function renderAll() {
+  // No localStorage — Firestore writes happen at point of action
   renderHoldings();
   renderLedger();
 }
 
-/* â”€â”€â”€ Render Holdings â”€â”€â”€ */
+/* ─── Render Holdings ─── */
 function renderHoldings() {
   const holdings=computeHoldings();
   holdings.forEach(h=>{
@@ -807,7 +829,7 @@ function renderHoldings() {
   let totalMktVal=0, totalCostBasis=0;
 
   if(holdings.length===0) {
-    tbody.innerHTML=`<tr><td colspan="8" class="empty">No holdings yet â€” buy stocks in the Transactions tab.</td></tr>`;
+    tbody.innerHTML=`<tr><td colspan="8" class="empty">No holdings yet — buy stocks in the Transactions tab.</td></tr>`;
   } else {
     holdings.forEach(h=>{
       const hasPrice=h.price!==null;
@@ -823,10 +845,10 @@ function renderHoldings() {
         <td class="r">${h.shares%1===0?h.shares:h.shares.toFixed(4)}</td>
         <td class="r">$${fmt(h.avgCost)}</td>
         <td class="r">${hasPrice?'$'+fmt(h.price):'<span class="dot"></span>'}</td>
-        <td class="r">${h.chg!==null?`<span class="badge ${h.chg>=0?'pos':'neg'}">${fmtPct(h.chg)}</span>`:'â€”'}</td>
-        <td class="r">${val!==null?'$'+fmt(val):'â€”'}</td>
-        <td class="r">${gain!==null?`<span class="${gain>=0?'pos':'neg'}">${gain>=0?'+':'-'}$${fmt(Math.abs(gain))}</span>`:'â€”'}</td>
-        <td class="r">${retPct!==null?`<span class="badge ${retPct>=0?'pos':'neg'}">${fmtPct(retPct)}</span>`:'â€”'}</td>
+        <td class="r">${h.chg!==null?`<span class="badge ${h.chg>=0?'pos':'neg'}">${fmtPct(h.chg)}</span>`:'—'}</td>
+        <td class="r">${val!==null?'$'+fmt(val):'—'}</td>
+        <td class="r">${gain!==null?`<span class="${gain>=0?'pos':'neg'}">${gain>=0?'+':'-'}$${fmt(Math.abs(gain))}</span>`:'—'}</td>
+        <td class="r">${retPct!==null?`<span class="badge ${retPct>=0?'pos':'neg'}">${fmtPct(retPct)}</span>`:'—'}</td>
       `;
       tbody.appendChild(tr);
     });
@@ -846,7 +868,7 @@ function renderHoldings() {
   `;
 }
 
-/* â”€â”€â”€ Render Ledger â”€â”€â”€ */
+/* ─── Render Ledger ─── */
 function renderLedger() {
   const sorted=[...ledger].sort((a,b)=>a.date.localeCompare(b.date)||(a.id||0)-(b.id||0));
   const tbody=document.getElementById('ledger-body');
@@ -854,45 +876,33 @@ function renderLedger() {
   tbody.innerHTML='';
 
   if(sorted.length===0) {
-    tbody.innerHTML=`<tr><td colspan="11" class="empty">No transactions yet â€” start by making a deposit.</td></tr>`;
+    tbody.innerHTML=`<tr><td colspan="10" class="empty">No transactions yet — start by making a deposit.</td></tr>`;
   } else {
     let running=0;
-    let cumulativeDepSGD=0;
     sorted.forEach(e=>{
       const isCredit=e.type==='deposit'||e.type==='sell';
       running+=isCredit?e.amount:-e.amount;
-
-      // Update cumulative SGD deposits
-      if(e.type==='deposit' && e.amountSGD) cumulativeDepSGD += e.amountSGD;
-
       const labels={deposit:'Deposit',withdrawal:'Withdraw',buy:'Buy',sell:'Sell'};
       const cls={deposit:'dep',withdrawal:'wit',buy:'buy',sell:'sell'};
       const sgdAmt=(e.amountSGD && (e.type==='deposit'||e.type==='withdrawal'))
-        ? `<span style="white-space:nowrap">${isCredit?'+':'âˆ’'}S$${e.amountSGD.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})}</span>`
-        : '<span style="color:#ccc">â€”</span>';
+        ? `<span style="white-space:nowrap">${isCredit?'+':'−'}S$${e.amountSGD.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})}</span>`
+        : '<span style="color:#ccc">—</span>';
       const amtHtml=isCredit
         ?`<span class="pos">+US$${fmt(e.amount)}</span>`
         :`<span class="neg">-US$${fmt(e.amount)}</span>`;
       const note=e.note||(e.ticker?`${labels[e.type]} ${e.ticker}`:labels[e.type]);
-
-      // Total deposits column â€” only show for deposit rows, blank otherwise
-      const totalDepCell = e.type==='deposit'
-        ? `<span style="font-weight:500">S$${cumulativeDepSGD.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2})}</span>`
-        : `<span style="color:#ccc">â€”</span>`;
-
       const tr=document.createElement('tr');
       tr.innerHTML=`
-        <td>${totalDepCell}</td>
         <td style="color:#888">${fmtDate(e.date)}</td>
         <td><span class="badge ${cls[e.type]}">${labels[e.type]}</span></td>
-        <td style="font-weight:500">${e.ticker||'â€”'}</td>
-        <td class="r">${e.shares!=null?(e.shares%1===0?e.shares:e.shares.toFixed(4)):'â€”'}</td>
-        <td class="r">${e.pricePerShare!=null?'$'+fmt(e.pricePerShare):'â€”'}</td>
+        <td style="font-weight:500">${e.ticker||'—'}</td>
+        <td class="r">${e.shares!=null?(e.shares%1===0?e.shares:e.shares.toFixed(4)):'—'}</td>
+        <td class="r">${e.pricePerShare!=null?'$'+fmt(e.pricePerShare):'—'}</td>
         <td class="r">${amtHtml}</td>
         <td class="r">${sgdAmt}</td>
         <td style="color:#888;font-size:12px;max-width:160px;overflow:hidden;text-overflow:ellipsis">${note}</td>
         <td class="r" style="font-weight:500">US$${fmt(running)}</td>
-        <td><button class="del-btn" onclick="deleteLedgerEntry('${e.firestoreId}', ${e.id})" title="Delete">Ã—</button></td>
+        <td><button class="del-btn" onclick="deleteLedgerEntry('${e.firestoreId}', ${e.id})" title="Delete">×</button></td>
       `;
       tbody.appendChild(tr);
     });
@@ -907,13 +917,13 @@ function renderLedger() {
   const witsSGD=ledger.filter(e=>e.type==='withdrawal'&&e.amountSGD).reduce((a,e)=>a+e.amountSGD,0);
   const subEl=document.getElementById('bal-sub');
   if(subEl) subEl.textContent=deps>0
-    ?`US$${fmt(deps)} deposited (S$${fmt(depsSGD)}) Â· US$${fmt(wits)} withdrawn (S$${fmt(witsSGD)})`
+    ?`US$${fmt(deps)} deposited (S$${fmt(depsSGD)}) · US$${fmt(wits)} withdrawn (S$${fmt(witsSGD)})`
     :'No transactions yet';
 }
 
-/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+/* ══════════════════════════════════════
    SNAPSHOT LOGIC
-â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+══════════════════════════════════════ */
 
 function currentYM() {
   const d=new Date();
@@ -944,7 +954,6 @@ async function takeSnapshot(ym, silent=false) {
   const endDate=lastDayOfMonth(ym);
   const holdingsAsOf=computeHoldingsAsOf(endDate);
   const cash=cashBalanceAsOf(endDate);
-  const totalDepsSGD=cumulativeDepositsSGDAsOf(endDate);
 
   const priceResults=await Promise.allSettled(
     holdingsAsOf.map(h=>fetchPrice(h.ticker).then(r=>({ticker:h.ticker,...r})))
@@ -963,24 +972,15 @@ async function takeSnapshot(ym, silent=false) {
   const totalCost=holdingData.reduce((s,h)=>s+h.cost,0);
   const totalGain=holdingData.reduce((s,h)=>s+(h.gain||0),0);
 
-  // Preserve existing statement fields if retaking snapshot
-  const existing = snapshots[ym] || {};
-
   const snapData={
     ym,
     takenAt: new Date().toISOString(),
     cash,
-    totalDepsSGD,
     holdings: holdingData,
     totalMktValue,
     totalCost,
     totalGain,
     totalWithCash: totalMktValue+cash,
-    // Statement fields â€” preserve on retake
-    stmtCostSGD:    existing.stmtCostSGD    ?? null,
-    stmtMktValueSGD: existing.stmtMktValueSGD ?? null,
-    stmtPL:          existing.stmtPL          ?? null,
-    stmtRate:        existing.stmtRate        ?? null,
   };
 
   await _dbSaveSnapshot(ym, snapData);
@@ -991,26 +991,6 @@ async function takeSnapshot(ym, silent=false) {
 async function deleteSnapshot(ym) {
   await _dbDeleteSnapshot(ym);
   delete snapshots[ym];
-  renderSnapshots();
-}
-
-/* â”€â”€â”€ Save statement fields for a given month â”€â”€â”€ */
-async function saveStmtFields(ym) {
-  const snap = snapshots[ym];
-  if (!snap) return;
-
-  const costSGD    = parseFloat(document.getElementById(`stmt-cost-${ym}`).value);
-  const mktValSGD  = parseFloat(document.getElementById(`stmt-mktval-${ym}`).value);
-  const pl         = parseFloat(document.getElementById(`stmt-pl-${ym}`).value);
-  const rate       = parseFloat(document.getElementById(`stmt-rate-${ym}`).value);
-
-  snap.stmtCostSGD     = isNaN(costSGD)   ? null : +costSGD.toFixed(2);
-  snap.stmtMktValueSGD = isNaN(mktValSGD) ? null : +mktValSGD.toFixed(2);
-  snap.stmtPL          = isNaN(pl)        ? null : +pl.toFixed(2);
-  snap.stmtRate        = isNaN(rate)      ? null : +rate.toFixed(6);
-
-  await _dbSaveSnapshot(ym, snap);
-  snapshots[ym] = snap;
   renderSnapshots();
 }
 
@@ -1035,18 +1015,17 @@ function renderSnapshots() {
 
   let html='';
 
-  // â”€â”€ Month navigator & controls â”€â”€
   html+=`<div class="snap-toolbar">
     <div class="month-nav">
-      <button onclick="snapNav(-1)" ${idx===0?'disabled':''}>â€¹</button>
+      <button onclick="snapNav(-1)" ${idx===0?'disabled':''}>‹</button>
       <span>${monthLabel(snapViewMonth)}</span>
-      <button onclick="snapNav(1)" ${idx===months.length-1?'disabled':''}>â€º</button>
+      <button onclick="snapNav(1)" ${idx===months.length-1?'disabled':''}>›</button>
     </div>
     <select onchange="snapViewMonth=this.value;renderSnapshots()" style="min-width:160px">
       ${[...months].reverse().map(m=>`<option value="${m}" ${m===snapViewMonth?'selected':''}>${monthLabel(m)}</option>`).join('')}
     </select>
     <button onclick="doTakeSnapshot('${snapViewMonth}')" id="snap-btn-${snapViewMonth}">
-      ${snap ? 'â†» Retake snapshot' : '+ Take snapshot'}
+      ${snap ? '↻ Retake snapshot' : '+ Take snapshot'}
     </button>
     ${snap?`<button onclick="deleteSnapshot('${snapViewMonth}')" style="color:#E24B4A;border-color:#f5c0c0">Delete</button>`:''}
   </div>`;
@@ -1060,8 +1039,7 @@ function renderSnapshots() {
     const takenAt=new Date(snap.takenAt).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'});
     const totalRet=snap.totalCost?(snap.totalGain/snap.totalCost*100):0;
 
-    // â”€â”€ Summary cards â”€â”€
-    html+=`<div class="snap-section-title">Portfolio summary Â· captured ${takenAt}</div>
+    html+=`<div class="snap-section-title">Portfolio summary · captured ${takenAt}</div>
     <div class="snap-card-grid">
       <div class="snap-card"><div class="snap-card-label">Total value (incl. cash)</div><div class="snap-card-value">$${fmt(snap.totalWithCash)}</div></div>
       <div class="snap-card"><div class="snap-card-label">Equity value</div><div class="snap-card-value">$${fmt(snap.totalMktValue)}</div></div>
@@ -1071,50 +1049,6 @@ function renderSnapshots() {
       <div class="snap-card"><div class="snap-card-label">Overall return</div><div class="snap-card-value ${totalRet>=0?'pos':'neg'}">${fmtPct(totalRet)}</div></div>
     </div>`;
 
-    // â”€â”€ Statement fields â”€â”€
-    const stmtCostVal    = snap.stmtCostSGD     != null ? snap.stmtCostSGD     : '';
-    const stmtMktValVal  = snap.stmtMktValueSGD != null ? snap.stmtMktValueSGD : '';
-    const stmtPLVal      = snap.stmtPL          != null ? snap.stmtPL          : '';
-    const stmtRateVal    = snap.stmtRate        != null ? snap.stmtRate        : '';
-
-    // Cost difference preview
-    let costDiffHtml = 'â€”';
-    if (snap.stmtCostSGD != null && snap.stmtRate != null && snap.stmtRate > 0) {
-      const stmtCostUSD = snap.stmtCostSGD * snap.stmtRate;
-      const diff = stmtCostUSD - snap.totalCost;
-      costDiffHtml = `<span class="${diff>=0?'pos':'neg'}">${diff>=0?'+':'-'}$${fmt(Math.abs(diff))}</span><span style="font-size:11px;color:#aaa"> (stmt S$${fmt(snap.stmtCostSGD)} Ã— ${snap.stmtRate.toFixed(4)} = US$${fmt(stmtCostUSD)})</span>`;
-    }
-
-    html+=`<div class="snap-section-title">Brokerage statement figures</div>
-    <div class="stmt-fields">
-      <div class="stmt-fields-title">Enter figures from your brokerage statement for ${monthLabel(snapViewMonth)}</div>
-      <div class="stmt-fields-row">
-        <div class="stmt-field">
-          <label>Statement cost (SGD)</label>
-          <input id="stmt-cost-${snapViewMonth}" type="number" step="any" placeholder="e.g. 18500.00" value="${stmtCostVal}" oninput="updateCostDiffPreview('${snapViewMonth}')">
-        </div>
-        <div class="stmt-field">
-          <label>Statement market value (SGD)</label>
-          <input id="stmt-mktval-${snapViewMonth}" type="number" step="any" placeholder="e.g. 21000.00" value="${stmtMktValVal}">
-        </div>
-        <div class="stmt-field">
-          <label>Statement P&amp;L (SGD)</label>
-          <input id="stmt-pl-${snapViewMonth}" type="number" step="any" placeholder="e.g. 2500.00" value="${stmtPLVal}">
-        </div>
-        <div class="stmt-field">
-          <label>SGD â†’ USD rate</label>
-          <input id="stmt-rate-${snapViewMonth}" type="number" step="any" placeholder="e.g. 0.7400" value="${stmtRateVal}" oninput="updateCostDiffPreview('${snapViewMonth}')">
-        </div>
-        <div class="stmt-field" style="justify-content:flex-end">
-          <button class="stmt-save-btn" onclick="saveStmtFields('${snapViewMonth}')">Save</button>
-        </div>
-      </div>
-      <div id="cost-diff-preview-${snapViewMonth}" style="font-size:12px;color:#555;margin-top:10px;min-height:18px">
-        Cost difference: ${costDiffHtml}
-      </div>
-    </div>`;
-
-    // â”€â”€ Holdings table â”€â”€
     html+=`<div class="snap-section-title">Holdings</div>
     <div class="table-wrap"><table>
       <thead><tr>
@@ -1133,15 +1067,15 @@ function renderSnapshots() {
           <td>${h.ticker}</td>
           <td class="r">${h.shares%1===0?h.shares:h.shares.toFixed(4)}</td>
           <td class="r">$${fmt(h.avgCost)}</td>
-          <td class="r">${h.pricePerShare!==null?'$'+fmt(h.pricePerShare):'â€”'}</td>
-          <td class="r">${h.mktValue!==null?'$'+fmt(h.mktValue):'â€”'}</td>
-          <td class="r">${h.gain!==null?`<span class="${h.gain>=0?'pos':'neg'}">${h.gain>=0?'+':'-'}$${fmt(Math.abs(h.gain))}</span>`:'â€”'}</td>
-          <td class="r">${h.mktValue!==null?`<span class="badge ${ret>=0?'pos':'neg'}">${fmtPct(ret)}</span>`:'â€”'}</td>
+          <td class="r">${h.pricePerShare!==null?'$'+fmt(h.pricePerShare):'—'}</td>
+          <td class="r">${h.mktValue!==null?'$'+fmt(h.mktValue):'—'}</td>
+          <td class="r">${h.gain!==null?`<span class="${h.gain>=0?'pos':'neg'}">${h.gain>=0?'+':'-'}$${fmt(Math.abs(h.gain))}</span>`:'—'}</td>
+          <td class="r">${h.mktValue!==null?`<span class="badge ${ret>=0?'pos':'neg'}">${fmtPct(ret)}</span>`:'—'}</td>
         </tr>
         <tr class="snap-expand" id="snap-expand-${i}">
           <td colspan="7">
-            Cost basis: $${fmt(h.cost)} Â· 
-            Weight: ${snap.totalMktValue?((h.mktValue||0)/snap.totalMktValue*100).toFixed(1):'â€”'}% of equity Â· 
+            Cost basis: $${fmt(h.cost)} · 
+            Weight: ${snap.totalMktValue?((h.mktValue||0)/snap.totalMktValue*100).toFixed(1):'—'}% of equity · 
             ${h.pricePerShare!==null?`Captured price: $${fmt(h.pricePerShare)}`:'Price unavailable at capture'}
           </td>
         </tr>`;
@@ -1150,51 +1084,6 @@ function renderSnapshots() {
     html+=`</tbody></table></div>`;
   }
 
-  // â”€â”€ Monthly summary table (only months with snapshots) â”€â”€
-  if(sortedSnaps.length > 0) {
-    html+=`<div class="snap-section-title">Month-end summary</div>
-    <div class="table-wrap snap-summary-table">
-    <table>
-      <thead><tr>
-        <th>Month</th>
-        <th class="r">Total deposits (SGD)</th>
-        <th class="r">Market value (USD)</th>
-        <th class="r">Actual P&amp;L (USD)</th>
-        <th class="r">Stmt cost (SGD)</th>
-        <th class="r">Stmt mkt val (SGD)</th>
-        <th class="r">Stmt P&amp;L (SGD)</th>
-        <th class="r">SGDâ†’USD rate</th>
-        <th class="r">Cost diff (USD)</th>
-      </tr></thead>
-      <tbody>`;
-
-    // Show most recent first
-    [...sortedSnaps].reverse().forEach(s => {
-      const isCurrent = s.ym === snapViewMonth;
-      // Cost difference: stmt cost in SGD * rate - tracked cost in USD
-      let costDiff = null;
-      if (s.stmtCostSGD != null && s.stmtRate != null && s.stmtRate > 0) {
-        costDiff = (s.stmtCostSGD * s.stmtRate) - s.totalCost;
-      }
-      const pl = s.totalGain; // tracked P&L in USD
-
-      html+=`<tr class="${isCurrent?'current-month':''}" style="cursor:pointer" onclick="snapViewMonth='${s.ym}';renderSnapshots()">
-        <td style="font-weight:500">${monthLabel(s.ym)}</td>
-        <td class="r">${s.totalDepsSGD != null ? 'S$'+fmt(s.totalDepsSGD) : 'â€”'}</td>
-        <td class="r">$${fmt(s.totalMktValue)}</td>
-        <td class="r"><span class="${pl>=0?'pos':'neg'}">${pl>=0?'+':'-'}$${fmt(Math.abs(pl))}</span></td>
-        <td class="r">${s.stmtCostSGD    != null ? 'S$'+fmt(s.stmtCostSGD)    : '<span style="color:#ccc">â€”</span>'}</td>
-        <td class="r">${s.stmtMktValueSGD!= null ? 'S$'+fmt(s.stmtMktValueSGD): '<span style="color:#ccc">â€”</span>'}</td>
-        <td class="r">${s.stmtPL         != null ? `<span class="${s.stmtPL>=0?'pos':'neg'}">${s.stmtPL>=0?'+':''}S$${fmt(s.stmtPL)}</span>` : '<span style="color:#ccc">â€”</span>'}</td>
-        <td class="r">${s.stmtRate       != null ? s.stmtRate.toFixed(4)       : '<span style="color:#ccc">â€”</span>'}</td>
-        <td class="r">${costDiff !== null ? `<span class="${costDiff>=0?'pos':'neg'}">${costDiff>=0?'+':'-'}$${fmt(Math.abs(costDiff))}</span>` : '<span style="color:#ccc">â€”</span>'}</td>
-      </tr>`;
-    });
-
-    html+=`</tbody></table></div>`;
-  }
-
-  // â”€â”€ Trend chart â”€â”€
   if(trendMonths.length > 1) {
     const maxVal=Math.max(...trendMonths.map(s=>s.totalWithCash),1);
     const bars=trendMonths.map(s=>{
@@ -1213,25 +1102,8 @@ function renderSnapshots() {
     </div>`;
   }
 
-  html+=`<div class="snap-info">Snapshots capture holdings and live prices at the time of capture. Retake any month to refresh. Click a row in the summary table to jump to that month.</div>`;
+  html+=`<div class="snap-info">Snapshots capture holdings and live prices at the time of capture, not necessarily end-of-month closing prices. Retake any month to refresh.</div>`;
   container.innerHTML=html;
-}
-
-/* â”€â”€â”€ Live cost diff preview while typing in stmt fields â”€â”€â”€ */
-function updateCostDiffPreview(ym) {
-  const snap = snapshots[ym];
-  if (!snap) return;
-  const costSGD = parseFloat(document.getElementById(`stmt-cost-${ym}`).value);
-  const rate    = parseFloat(document.getElementById(`stmt-rate-${ym}`).value);
-  const el = document.getElementById(`cost-diff-preview-${ym}`);
-  if (!el) return;
-  if (!isNaN(costSGD) && costSGD > 0 && !isNaN(rate) && rate > 0) {
-    const stmtCostUSD = costSGD * rate;
-    const diff = stmtCostUSD - snap.totalCost;
-    el.innerHTML = `Cost difference: <span class="${diff>=0?'pos':'neg'}">${diff>=0?'+':'-'}$${fmt(Math.abs(diff))}</span><span style="font-size:11px;color:#aaa"> (S$${fmt(costSGD)} Ã— ${rate.toFixed(4)} = US$${fmt(stmtCostUSD)} vs tracked US$${fmt(snap.totalCost)})</span>`;
-  } else {
-    el.textContent = 'Cost difference: â€”';
-  }
 }
 
 function snapNav(dir) {
@@ -1246,14 +1118,16 @@ function toggleSnapExpand(i) {
   if(el) el.classList.toggle('open');
 }
 
-/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+/* ══════════════════════════════════════
    WATCHLIST LOGIC
-â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
+══════════════════════════════════════ */
 
 let watchlist = JSON.parse(localStorage.getItem('watchlist') || '[]');
 let watchlistPrices = {};
 
-function saveWatchlist() { localStorage.setItem('watchlist', JSON.stringify(watchlist)); }
+function saveWatchlist() {
+  localStorage.setItem('watchlist', JSON.stringify(watchlist));
+}
 
 function addWatchlistItem() {
   const ticker = document.getElementById('wl-ticker').value.trim().toUpperCase();
@@ -1282,7 +1156,9 @@ async function fetchWatchlistPrice(ticker) {
   try {
     const r = await fetchPrice(ticker);
     watchlistPrices[ticker] = r;
-  } catch(e) { watchlistPrices[ticker] = null; }
+  } catch(e) {
+    watchlistPrices[ticker] = null;
+  }
 }
 
 function setWlSpin(on) { document.getElementById('wl-spin').style.display = on ? 'inline' : 'none'; }
@@ -1300,15 +1176,15 @@ function renderWatchlist() {
   if (!tbody) return;
   tbody.innerHTML = '';
   if (!watchlist.length) {
-    tbody.innerHTML = `<tr><td colspan="7" class="empty">No stocks on your watchlist yet â€” click "+ Add to watchlist" to get started.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="7" class="empty">No stocks on your watchlist yet — click "+ Add to watchlist" to get started.</td></tr>`;
     return;
   }
   watchlist.forEach(w => {
     const p = watchlistPrices[w.ticker];
     const hasPrice = p && p.price != null;
     const priceHtml = hasPrice ? `$${fmt(p.price)}` : '<span class="dot"></span>';
-    const chgHtml = (hasPrice && p.chg != null) ? `<span class="badge ${p.chg >= 0 ? 'pos' : 'neg'}">${fmtPct(p.chg)}</span>` : 'â€”';
-    let targetHtml = 'â€”', vsTargetHtml = 'â€”';
+    const chgHtml = (hasPrice && p.chg != null) ? `<span class="badge ${p.chg >= 0 ? 'pos' : 'neg'}">${fmtPct(p.chg)}</span>` : '—';
+    let targetHtml = '—', vsTargetHtml = '—';
     if (w.target) {
       targetHtml = `$${fmt(w.target)}`;
       if (hasPrice) {
@@ -1324,8 +1200,8 @@ function renderWatchlist() {
       <td class="r">${chgHtml}</td>
       <td class="r">${targetHtml}</td>
       <td class="r">${vsTargetHtml}</td>
-      <td style="color:#888;font-size:12px">${w.note || 'â€”'}</td>
-      <td><button class="del-btn" onclick="removeWatchlistItem('${w.ticker}')" title="Remove">Ã—</button></td>
+      <td style="color:#888;font-size:12px">${w.note || '—'}</td>
+      <td><button class="del-btn" onclick="removeWatchlistItem('${w.ticker}')" title="Remove">×</button></td>
     `;
     tbody.appendChild(tr);
   });
@@ -1333,7 +1209,7 @@ function renderWatchlist() {
 
 async function doTakeSnapshot(ym) {
   const btn=document.getElementById('snap-btn-'+ym);
-  if(btn){btn.textContent='Fetchingâ€¦';btn.disabled=true;}
+  if(btn){btn.textContent='Fetching…';btn.disabled=true;}
   await takeSnapshot(ym);
 }
 </script>
